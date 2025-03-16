@@ -1,0 +1,14 @@
+# Ignore compiled class files
+*.class
+
+# Optionally, ignore IDE-specific files
+.idea/
+*.iml
+
+# Optionally, ignore build directories if using Maven/Gradle
+target/
+build/
+
+# Decide if you want to track your data folder
+# If not, uncomment the next line:
+# data/
