@@ -3,7 +3,7 @@ package com.example.parking;
 import com.example.parking.dao.CSVClientDAO;
 import com.example.parking.dao.CSVParkingSpaceDAO;
 import com.example.parking.dao.CSVBookingDAO;
-import com.example.parking.model.Client;
+// import com.example.parking.model.Client;
 import com.example.parking.model.ParkingSpace;
 import com.example.parking.service.ClientService;
 import com.example.parking.service.ParkingSpaceService;
