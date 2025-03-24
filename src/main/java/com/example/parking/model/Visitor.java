@@ -1,27 +1,27 @@
 package com.example.parking.model;
-
+import java.util.Date;
 /**
  * Represents a visitor client, extending the base Client class.
  */
-public class Visitor extends Client {
-    private String visitingPurpose;
+public class Visitor extends Client implements Observer {
+    private String visitInformation;
     private String visitorId;
+    private Date visitDate;
 
     public Visitor(String clientId, String name, String email, String password,
-                   String visitingPurpose, String visitorId) {
+                   String visitInformation, String visitorId) {
         super(clientId, name, email, password);
-        this.visitingPurpose = visitingPurpose;
+        this.visitInformation = visitInformation;
         this.visitorId = visitorId;
     }
 
-    public String getVisitingPurpose() {
-        return visitingPurpose;
+    public String getvisitInformation() {
+        return visitInformation;
     }
 
-    public void setVisitingPurpose(String visitingPurpose) {
-        this.visitingPurpose = visitingPurpose;
+    public void setvisitInformation(String visitInformation) {
+        this.visitInformation = visitInformation;
     }
-
     public String getVisitorId() {
         return visitorId;
     }
@@ -30,11 +30,29 @@ public class Visitor extends Client {
         this.visitorId = visitorId;
     }
 
+    public Date getVisitDate() {  // Getter for visitDate
+        return visitDate;
+    }
+
+    public void setVisitDate(Date visitDate) {  // Setter for visitDate
+        this.visitDate = visitDate;
+    }
+
+    @Override
+    public void update(ParkingSpace parkingSpace) {
+        // Handle the parking space update notification
+        String status = parkingSpace.isOccupied() ? "occupied" : "available";
+        System.out.println("Visitor " + name + ": Parking space status changed to " + status);
+        if (parkingSpace.isOccupied()) {
+            System.out.println("Details: " + parkingSpace.getCarInfo());
+        }
+    }
     @Override
     public String toString() {
         return "Visitor{" +
-                "visitingPurpose='" + visitingPurpose + '\'' +
+                "visitInformation='" + visitInformation + '\'' +
                 ", visitorId='" + visitorId + '\'' +
+                ", visitDate=" + visitDate +
                 ", " + super.toString() +
                 '}';
     }

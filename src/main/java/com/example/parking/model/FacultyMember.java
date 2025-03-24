@@ -3,7 +3,7 @@ package com.example.parking.model;
 /**
  * Represents a faculty client, extending the base Client class.
  */
-public class FacultyMember extends Client {
+public class FacultyMember extends Client implements Observer {
     private String department;
     private String position;
 
@@ -29,7 +29,14 @@ public class FacultyMember extends Client {
     public void setPosition(String position) {
         this.position = position;
     }
-
+    @Override
+    public void update(ParkingSpace parkingSpace) {
+        String status = parkingSpace.isOccupied() ? "occupied" : "available";
+        System.out.println("Faculty " + getName() + ": Parking space " + parkingSpace.getSpaceId() + " status changed to " + status);
+        if (parkingSpace.isOccupied()) {
+            System.out.println("Details: " + parkingSpace.getCarInfo());
+        }
+    }
     @Override
     public String toString() {
         return "FacultyMember{" +
