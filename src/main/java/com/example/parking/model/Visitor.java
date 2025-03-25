@@ -38,6 +38,10 @@ public class Visitor extends Client implements Observer {
         this.visitDate = visitDate;
     }
 
+    public double getParkingRate(){
+        return VisitorPricing.getRate();
+    }
+
     @Override
     public void update(ParkingSpace parkingSpace) {
         // Handle the parking space update notification

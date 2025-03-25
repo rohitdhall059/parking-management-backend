@@ -29,6 +29,10 @@ public class NonFacultyStaff extends Client implements Observer {
     public void setDepartment(String office) {
         this.department = department;
     }
+
+    public double getParkingRate(){
+        return NonFacultyStaffPricing.getRate();
+    }
     @Override
     public void update(ParkingSpace parkingSpace) {
         String status = parkingSpace.isOccupied() ? "occupied" : "available";

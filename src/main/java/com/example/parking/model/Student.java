@@ -27,6 +27,10 @@ public class Student extends Client implements Observer {
     public String getMajor() {
         return major;
     }
+    
+    public double getParkingRate(){
+        return StudentPricing.getRate();
+    }
 
     public void setMajor(String major) {
         this.major = major;

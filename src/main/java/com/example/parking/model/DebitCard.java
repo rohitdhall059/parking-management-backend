@@ -3,16 +3,19 @@ package com.example.parking.model;
 public class DebitCard extends PaymentMethod {
 
     private String cardNumber;
+    private String cardHolderName;
     private String pin; // e.g. "1234"
 
-    public DebitCard(double amount, String cardNumber, String pin) {
-        super(amount);
+    public DebitCard(String cardNumber, String cardHolderName, String pin) {
         this.cardNumber = cardNumber;
+        this.cardHolderName = cardHolderName;
         this.pin = pin;
     }
 
     @Override
-    public void processPayment() {
+    public void processPayment(double amount) {
+        super(amount);
+        
         // 1. Validate the debit card number
         if (!isValidCardNumber(cardNumber)) {
             System.out.println("Transaction failed: invalid debit card number.");

@@ -1,34 +1,30 @@
 package com.example.parking.model;
 
-/**
- * Base client class, extended by Student, FacultyMember, NonFacultyStaff, and Visitor.
- */
 public class Client {
+    private PricingStrategy pricingStrategy;
     private String clientId;
     private String name;
     private String email;
     private boolean isRegistered;
-    private String password; // Add if the UML or your design requires a password field
+    private String password; // Optional
+    private Car car; // New field for the associated car
 
-    /**
-     * Basic constructor for a Client.
-     * @param clientId  Unique ID for the client
-     * @param name      The client's name
-     * @param email     The client's email address
-     * @param password  (Optional) The client's password if needed
-     */
-    public Client(String clientId, String name, String email, String password) {
+   // Constructor
+    public Client(String clientId, String name, String email, String password, Car car, PricingStrategy pricingStrategy) {
         this.clientId = clientId;
         this.name = name;
         this.email = email;
         this.isRegistered = false; // default
         this.password = password;  // if needed
+        this.car = car; // Associate the car with the client
+        this.pricingStrategy = pricingStrategy; // Set the pricing strategy
     }
 
     // Alternate constructor if you do NOT want a password
-    public Client(String clientId, String name, String email) {
-        this(clientId, name, email, null);
+    public Client(String clientId, String name, String email, Car car, PricingStrategy pricingStrategy) {
+        this(clientId, name, email, null, car, pricingStrategy);
     }
+
 
     // Getters and Setters
     public String getClientId() {
@@ -71,6 +67,21 @@ public class Client {
         this.password = password;
     }
 
+    public Car getCar() {
+        return car; // Getter for the car
+    }
+
+    public void setCar(Car car) {
+        this.car = car; // Setter for the car
+    }
+
+    public double getParkingRate() {
+        if (pricingStrategy != null) {
+            return pricingStrategy.getRate(); // Get the rate from the pricing strategy
+        }
+        return 0.0; // Default rate if no strategy provided
+    }
+
     @Override
     public String toString() {
         return "Client{" +
@@ -79,6 +90,8 @@ public class Client {
                 ", email='" + email + '\'' +
                 ", isRegistered=" + isRegistered +
                 ", password=" + (password != null ? "******" : "null") +
+                ", car=" + (car != null ? car.toString() : "No car associated") +
+                ", pricingStrategy=" + (pricingStrategy != null ? pricingStrategy.getClass().getSimpleName() : "Not set") +
                 '}';
     }
 }

@@ -29,6 +29,11 @@ public class FacultyMember extends Client implements Observer {
     public void setPosition(String position) {
         this.position = position;
     }
+
+    public double getParkingRate(){
+        return FacultyMemberPricing.getRate();
+    }
+    
     @Override
     public void update(ParkingSpace parkingSpace) {
         String status = parkingSpace.isOccupied() ? "occupied" : "available";

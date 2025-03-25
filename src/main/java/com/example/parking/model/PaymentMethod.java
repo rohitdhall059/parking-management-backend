@@ -1,13 +1,16 @@
 package com.example.parking.model;
 
 public abstract class PaymentMethod {
+    protected String paymentID;
     protected double amount;
 
     public PaymentMethod(double amount) {
         this.amount = amount;
     }
 
-    public abstract void processPayment();
+    public abstract void processPayment(double amount){
+        this.amount-=amount;
+    }
 
     public double getAmount() {
         return amount;

@@ -7,16 +7,19 @@ import java.time.format.DateTimeParseException;
 public class CreditCard extends PaymentMethod {
 
     private String cardNumber;
+    private String cardHolderName;
     private String expiry; // Expected format: "MM/yy", e.g. "03/25"
 
-    public CreditCard(double amount, String cardNumber, String expiry) {
-        super(amount);
+    public CreditCard(String cardHolderName, String cardNumber, String expiry) {
+        this.cardHolderName = cardHolderName;
         this.cardNumber = cardNumber;
         this.expiry = expiry;
     }
 
     @Override
-    public void processPayment() {
+    public void processPayment(double amount) {
+        super(amount);
+
         // 1. Validate the credit card number
         if (!isValidCardNumber(cardNumber)) {
             System.out.println("Transaction failed: invalid credit card number.");
