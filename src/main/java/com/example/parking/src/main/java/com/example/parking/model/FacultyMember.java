@@ -5,13 +5,13 @@ package com.example.parking.model;
  */
 public class FacultyMember extends Client implements Observer {
     private String department;
-    private String position;
+    private String facultyId;
 
     public FacultyMember(String clientId, String name, String email, String password,
-                         String department, String position) {
-        super(clientId, name, email, password);
+                         String facultyId, String department) {
+        super(clientId, name, email, password, null, null); // Initialize with null car and pricing strategy
         this.department = department;
-        this.position = position;
+        this.facultyId = facultyId;
     }
 
     public String getDepartment() {
@@ -22,15 +22,16 @@ public class FacultyMember extends Client implements Observer {
         this.department = department;
     }
 
-    public String getPosition() {
-        return position;
+    public String getFacultyId() {
+        return facultyId;
     }
 
-    public void setPosition(String position) {
-        this.position = position;
+    public void setFacultyId(String facultyId) {
+        this.facultyId = facultyId;
     }
 
-    public double getParkingRate(){
+    @Override
+    public double getParkingRate() {
         return FacultyMemberPricing.getRate();
     }
     
@@ -46,7 +47,7 @@ public class FacultyMember extends Client implements Observer {
     public String toString() {
         return "FacultyMember{" +
                 "department='" + department + '\'' +
-                ", position='" + position + '\'' +
+                ", facultyId='" + facultyId + '\'' +
                 ", " + super.toString() +
                 '}';
     }

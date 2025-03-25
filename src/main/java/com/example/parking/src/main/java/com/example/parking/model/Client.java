@@ -75,6 +75,14 @@ public class Client {
         this.car = car; // Setter for the car
     }
 
+    public PricingStrategy getPricingStrategy() {
+        return pricingStrategy;
+    }
+
+    public void setPricingStrategy(PricingStrategy pricingStrategy) {
+        this.pricingStrategy = pricingStrategy;
+    }
+
     public double getParkingRate() {
         if (pricingStrategy != null) {
             return pricingStrategy.getRate(); // Get the rate from the pricing strategy

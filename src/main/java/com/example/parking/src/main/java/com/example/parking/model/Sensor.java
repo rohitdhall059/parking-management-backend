@@ -3,14 +3,18 @@ package com.example.parking.model;
 import java.util.Random;
 import java.util.logging.Logger;
 
-public class Sensor {
+public class Sensor implements Observer {
     private static final Logger logger = Logger.getLogger(Sensor.class.getName());
+    private String sensorId;
     private ParkingSpace parkingSpace;
+    private boolean isActive;
     private Random random = new Random();
 
     // Constructor
-    public Sensor(ParkingSpace parkingSpace) {
+    public Sensor(String sensorId, ParkingSpace parkingSpace) {
+        this.sensorId = sensorId;
         this.parkingSpace = parkingSpace;
+        this.isActive = true;
         attachToParkingSpace();
     }
 
@@ -18,6 +22,14 @@ public class Sensor {
     private void attachToParkingSpace() {
         parkingSpace.attach(this);
         logger.info("Sensor attached to parking space: " + parkingSpace.getSpaceId());
+    }
+
+    @Override
+    public void update(ParkingSpace parkingSpace) {
+        if (isActive) {
+            System.out.println("Sensor " + sensorId + " detected change in parking space " + parkingSpace.getId());
+            // Additional logic for sensor updates
+        }
     }
 
     // Method to detect the presence of a car by scanning for its license plate
@@ -48,7 +60,28 @@ public class Sensor {
     }
 
     public String scanCarInfo() {
-        return parkingSpace.isOccupied ? parkingSpace.getLicensePlate() : "No car";
+        if (!isActive) {
+            return "Sensor inactive";
+        }
+        return parkingSpace.isOccupied() ? parkingSpace.getLicensePlate() : "No car";
+    }
+
+    public void activate() {
+        isActive = true;
+        System.out.println("Sensor " + sensorId + " activated");
+    }
+
+    public void deactivate() {
+        isActive = false;
+        System.out.println("Sensor " + sensorId + " deactivated");
+    }
+
+    public String getSensorId() {
+        return sensorId;
+    }
+
+    public boolean isActive() {
+        return isActive;
     }
 
     // Getters and setters if needed

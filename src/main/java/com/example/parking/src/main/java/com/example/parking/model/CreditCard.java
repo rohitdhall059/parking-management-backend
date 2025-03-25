@@ -10,7 +10,8 @@ public class CreditCard extends PaymentMethod {
     private String cardHolderName;
     private String expiry; // Expected format: "MM/yy", e.g. "03/25"
 
-    public CreditCard(String cardHolderName, String cardNumber, String expiry) {
+    public CreditCard(String cardHolderName, String cardNumber, String expiry, double amount) {
+        super(amount);
         this.cardHolderName = cardHolderName;
         this.cardNumber = cardNumber;
         this.expiry = expiry;
@@ -18,8 +19,6 @@ public class CreditCard extends PaymentMethod {
 
     @Override
     public void processPayment(double amount) {
-        super(amount);
-
         // 1. Validate the credit card number
         if (!isValidCardNumber(cardNumber)) {
             System.out.println("Transaction failed: invalid credit card number.");
@@ -44,6 +43,23 @@ public class CreditCard extends PaymentMethod {
         System.out.println("Credit card payment of $" + amount + " approved using card " 
             + maskedCard + " (expires " + expiry + ").");
         // Additional logic: contacting payment gateway, updating logs, etc.
+    }
+
+    @Override
+    public void processRefund(double amount) {
+        if (!isValidCardNumber(cardNumber)) {
+            System.out.println("Refund failed: invalid credit card number.");
+            return;
+        }
+
+        if (isCardExpired(expiry)) {
+            System.out.println("Refund failed: credit card is expired (" + expiry + ").");
+            return;
+        }
+
+        String maskedCard = maskCardNumber(cardNumber);
+        System.out.println("Credit card refund of $" + amount + " processed for card " 
+            + maskedCard + " (expires " + expiry + ").");
     }
 
     /**

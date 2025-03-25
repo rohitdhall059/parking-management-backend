@@ -6,7 +6,8 @@ public class DebitCard extends PaymentMethod {
     private String cardHolderName;
     private String pin; // e.g. "1234"
 
-    public DebitCard(String cardNumber, String cardHolderName, String pin) {
+    public DebitCard(String cardNumber, String cardHolderName, String pin, double amount) {
+        super(amount);
         this.cardNumber = cardNumber;
         this.cardHolderName = cardHolderName;
         this.pin = pin;
@@ -14,8 +15,6 @@ public class DebitCard extends PaymentMethod {
 
     @Override
     public void processPayment(double amount) {
-        super(amount);
-        
         // 1. Validate the debit card number
         if (!isValidCardNumber(cardNumber)) {
             System.out.println("Transaction failed: invalid debit card number.");
@@ -41,6 +40,23 @@ public class DebitCard extends PaymentMethod {
         System.out.println("Debit card payment of $" + amount + " approved using card " 
             + masked + " with valid PIN.");
         // Additional logic: deduct from bank account, record transaction, etc.
+    }
+
+    @Override
+    public void processRefund(double amount) {
+        if (!isValidCardNumber(cardNumber)) {
+            System.out.println("Refund failed: invalid debit card number.");
+            return;
+        }
+
+        if (!isValidPin(pin)) {
+            System.out.println("Refund failed: incorrect PIN.");
+            return;
+        }
+
+        String masked = maskCardNumber(cardNumber);
+        System.out.println("Debit card refund of $" + amount + " processed for card " 
+            + masked + " with valid PIN.");
     }
 
     /**

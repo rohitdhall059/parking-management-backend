@@ -4,33 +4,34 @@ package com.example.parking.model;
  * Represents non-faculty staff, extending the base Client class.
  */
 public class NonFacultyStaff extends Client implements Observer {
-    private String role;
-    private String department;
+    private String staffId;
+    private String office;
 
     public NonFacultyStaff(String clientId, String name, String email, String password,
-                           String role, String department) {
-        super(clientId, name, email, password);
-        this.role = role;
-        this.department = department;
+                           String staffId, String office) {
+        super(clientId, name, email, password, null, null); // Initialize with null car and pricing strategy
+        this.staffId = staffId;
+        this.office = office;
     }
 
-    public String getRole() {
-        return role;
+    public String getStaffId() {
+        return staffId;
     }
 
-    public void setRole(String role) {
-        this.role = role;
+    public void setStaffId(String staffId) {
+        this.staffId = staffId;
     }
 
-    public String getDepartment() {
+    public String getOffice() {
         return office;
     }
 
-    public void setDepartment(String office) {
-        this.department = department;
+    public void setOffice(String office) {
+        this.office = office;
     }
 
-    public double getParkingRate(){
+    @Override
+    public double getParkingRate() {
         return NonFacultyStaffPricing.getRate();
     }
     @Override
@@ -44,8 +45,8 @@ public class NonFacultyStaff extends Client implements Observer {
     @Override
     public String toString() {
         return "NonFacultyStaff{" +
-                "role='" + role + '\'' +
-                ", department='" + department + '\'' +
+                "staffId='" + staffId + '\'' +
+                ", office='" + office + '\'' +
                 ", " + super.toString() +
                 '}';
     }

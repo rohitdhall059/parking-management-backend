@@ -10,7 +10,7 @@ public class Visitor extends Client implements Observer {
 
     public Visitor(String clientId, String name, String email, String password,
                    String visitInformation, String visitorId) {
-        super(clientId, name, email, password);
+        super(clientId, name, email, password, null, null); // Initialize with null car and pricing strategy
         this.visitInformation = visitInformation;
         this.visitorId = visitorId;
     }
@@ -38,7 +38,8 @@ public class Visitor extends Client implements Observer {
         this.visitDate = visitDate;
     }
 
-    public double getParkingRate(){
+    @Override
+    public double getParkingRate() {
         return VisitorPricing.getRate();
     }
 

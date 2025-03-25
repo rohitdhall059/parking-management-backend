@@ -6,14 +6,13 @@ public class MobilePayment extends PaymentMethod {
 
     private String phoneNumber; // Phone number associated with the mobile payment
 
-    public MobilePayment(String phoneNumber) {
+    public MobilePayment(String phoneNumber, double amount) {
+        super(amount);
         this.phoneNumber = phoneNumber;
     }
 
     @Override
     public void processPayment(double amount) {
-        super(amount);
-
         // 1. Validate the phone number
         if (!isValidPhoneNumber(phoneNumber)) {
             System.out.println("Transaction failed: invalid phone number.");
@@ -29,6 +28,17 @@ public class MobilePayment extends PaymentMethod {
         System.out.println("Mobile payment of $" + amount + " approved using phone number " 
             + maskPhoneNumber(phoneNumber) + ".");
         // Additional logic: contacting payment gateway, updating logs, etc.
+    }
+
+    @Override
+    public void processRefund(double amount) {
+        if (!isValidPhoneNumber(phoneNumber)) {
+            System.out.println("Refund failed: invalid phone number.");
+            return;
+        }
+
+        System.out.println("Mobile payment refund of $" + amount + " processed for phone number " 
+            + maskPhoneNumber(phoneNumber) + ".");
     }
 
     /**

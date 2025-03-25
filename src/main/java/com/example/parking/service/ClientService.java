@@ -20,35 +20,35 @@ public class ClientService {
 
     /**
      * Registers a new client in the system.
-     * @param clientId unique client ID.
-     * @param name client's name.
-     * @param email client's email address.
+     * @param client the client object to register
      * @throws IllegalArgumentException if the clientId already exists or data is invalid.
      */
-    public void registerClient(String clientId, String name, String email) {
+    public void registerClient(Client client) {
         // 1) Validate input
-        if (clientId == null || clientId.isEmpty()) {
+        if (client == null) {
+            throw new IllegalArgumentException("Client object cannot be null.");
+        }
+        if (client.getClientId() == null || client.getClientId().isEmpty()) {
             throw new IllegalArgumentException("Client ID cannot be null or empty.");
         }
-        if (name == null || name.isEmpty()) {
+        if (client.getName() == null || client.getName().isEmpty()) {
             throw new IllegalArgumentException("Client name cannot be null or empty.");
         }
-        if (email == null || email.isEmpty()) {
+        if (client.getEmail() == null || client.getEmail().isEmpty()) {
             throw new IllegalArgumentException("Client email cannot be null or empty.");
         }
 
         // 2) Check if this ID already exists
-        Client existing = clientDAO.getById(clientId);
+        Client existing = clientDAO.getById(client.getClientId());
         if (existing != null) {
-            throw new IllegalArgumentException("Client ID already in use: " + clientId);
+            throw new IllegalArgumentException("Client ID already in use: " + client.getClientId());
         }
 
-        // 3) Create Client object
-        Client newClient = new Client(clientId, name, email);
-        newClient.setRegistered(true); // Assume newly registered
+        // 3) Set registration status
+        client.setRegistered(true); // Assume newly registered
 
         // 4) Save via DAO
-        clientDAO.save(newClient);
+        clientDAO.save(client);
     }
 
     /**

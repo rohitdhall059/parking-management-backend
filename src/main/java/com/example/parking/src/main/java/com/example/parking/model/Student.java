@@ -7,11 +7,11 @@ package com.example.parking.model;
 public class Student extends Client implements Observer {
     private String major;
     private String year;
-    private String department;
+    private String studentId;
 
-    public Student(String clientId, String name, String email, String password, String department, String major, String year) {
-        super(clientId, name, email, password);
-        this.department = department;
+    public Student(String clientId, String name, String email, String password, String studentId, String major, String year) {
+        super(clientId, name, email, password, null, null); // Initialize with null car and pricing strategy
+        this.studentId = studentId;
         this.major = major;
         this.year = year;
     }
@@ -28,7 +28,8 @@ public class Student extends Client implements Observer {
         return major;
     }
     
-    public double getParkingRate(){
+    @Override
+    public double getParkingRate() {
         return StudentPricing.getRate();
     }
 
@@ -43,12 +44,15 @@ public class Student extends Client implements Observer {
     public void setYear(String year) {
         this.year = year;
     }
-    public String getDepartment() {
-        return department;
+
+    public String getStudentId() {
+        return studentId;
     }
-    public void setDepartment(String department) {
-        this.department = department;
+
+    public void setStudentId(String studentId) {
+        this.studentId = studentId;
     }
+
     @Override
     public void update(ParkingSpace parkingSpace) {
         String status = parkingSpace.isOccupied() ? "occupied" : "available";
@@ -60,7 +64,8 @@ public class Student extends Client implements Observer {
     @Override
     public String toString() {
         return "Student{" +
-                "major='" + major + '\'' +
+                "studentId='" + studentId + '\'' +
+                ", major='" + major + '\'' +
                 ", year='" + year + '\'' +
                 ", " + super.toString() +
                 '}';

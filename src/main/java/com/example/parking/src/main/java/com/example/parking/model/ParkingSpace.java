@@ -10,6 +10,7 @@ public class ParkingSpace {
     private double rate;
     private String licensePlate;
     private List<Observer> observers;
+    private ParkingSpaceState state;
 
     public ParkingSpace(String spaceId, double rate) {
         this.spaceId = spaceId;
@@ -17,6 +18,7 @@ public class ParkingSpace {
         this.isOccupied = false;
         this.isEnabled = true;
         this.observers = new ArrayList<>();
+        this.state = new AvailableState();
     }
 
     // Observer methods
@@ -38,6 +40,7 @@ public class ParkingSpace {
     public void enable() {
         if (!isEnabled) {
             this.isEnabled = true;
+            this.state = new AvailableState();
             notifyObservers();
         }
     }
@@ -47,6 +50,7 @@ public class ParkingSpace {
         this.isEnabled = false;
         this.isOccupied = false;
         this.licensePlate = null;
+        this.state = new DisabledState();
         notifyObservers();
     }
 
@@ -55,6 +59,7 @@ public class ParkingSpace {
         if (isEnabled && !isOccupied) {
             this.isOccupied = true;
             this.licensePlate = licensePlate;
+            this.state = new OccupiedState();
             notifyObservers();
         }
     }
@@ -64,6 +69,7 @@ public class ParkingSpace {
         if (isOccupied) {
             this.isOccupied = false;
             this.licensePlate = null;
+            this.state = new AvailableState();
             notifyObservers();
         }
     }
@@ -89,6 +95,10 @@ public class ParkingSpace {
         return licensePlate;
     }
 
+    public ParkingSpaceState getState() {
+        return state;
+    }
+
     @Override
     public String toString() {
         return "ParkingSpace{" +
@@ -103,5 +113,39 @@ public class ParkingSpace {
     // Method to retrieve status as a string
     public String getStatus() {
         return isEnabled ? (isOccupied ? "Occupied" : "Available") : "Disabled";
+    }
+
+    public void setState(ParkingSpaceState state) {
+        this.state = state;
+    }
+
+    public void setOccupied(boolean occupied, Car car) {
+        this.isOccupied = occupied;
+        if (car != null) {
+            this.licensePlate = car.getLicensePlate();
+        } else {
+            this.licensePlate = null;
+        }
+        notifyObservers();
+    }
+
+    public void setRate(double rate) {
+        this.rate = rate;
+        notifyObservers();
+    }
+
+    public String getCarInfo() {
+        return isOccupied ? "Car with license plate: " + licensePlate : "No car";
+    }
+
+    public String getId() {
+        return spaceId;
+    }
+
+    public void free() {
+        this.isOccupied = false;
+        this.licensePlate = null;
+        this.state = new AvailableState();
+        notifyObservers();
     }
 }

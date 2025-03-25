@@ -11,6 +11,7 @@ public class Booking {
     private LocalDateTime endTime;
     private double totalCost;
     private PaymentMethod paymentMethod;
+    private double deposit = 10.0; // Default deposit amount
 
     public Booking(String bookingId, String clientId, String spaceId, LocalDateTime startTime, LocalDateTime endTime, double totalCost) {
         this.bookingId = bookingId;
@@ -43,6 +44,9 @@ public class Booking {
     public PaymentMethod getPaymentMethod() { return paymentMethod; }
     public void setPaymentMethod(PaymentMethod paymentMethod) { this.paymentMethod = paymentMethod; }
 
+    public double getDeposit() { return deposit; }
+    public void setDeposit(double deposit) { this.deposit = deposit; }
+
     @Override
     public String toString() {
         return "Booking {" + "bookingID = '" + bookingId + '\'' + ", clientID = '" + clientId + '\'' + ", spaceID = '" + spaceId + '\'' + ", startTime = " + startTime + ", endTime = " + endTime + ", totalCost = " + totalCost + '}';
@@ -62,8 +66,6 @@ public class Booking {
     // Method to checkout
     public void checkout() {
         System.out.println("Checking out booking: " + bookingId);
-        // Logic to finalize the booking, e.g., mark the parking space as free
-        // Deduct the deposit from the total cost
         totalCost -= deposit;
         System.out.println("Total cost after deducting deposit: " + totalCost);
     }
@@ -72,52 +74,10 @@ public class Booking {
     public double calculateRefund() {
         long minutesLeft = ChronoUnit.MINUTES.between(LocalDateTime.now(), endTime);
         if (minutesLeft > 0) {
-            // Assuming a simple refund policy: refund based on remaining time
             double refundAmount = (totalCost / ChronoUnit.MINUTES.between(startTime, endTime)) * minutesLeft;
             return refundAmount;
         }
-        return 0.0; // No refund if the booking has ended
-    }
-
-    // Method to extend parking time
-    public void extendParkingTime(LocalDateTime newEndTime, String clientType) {
-        if (newEndTime.isBefore(endTime)) {
-            throw new IllegalArgumentException("New end time must be after the current end time.");
-        }
-
-        // Call editBooking to update the end time and recalculate total cost
-        editBooking(this.spaceId, this.startTime, newEndTime, clientType);
-
-        System.out.println("Parking time extended to: " + newEndTime);
-    }
-
-    public void cancelBooking() {
-        // Logic to free the parking space
-        ParkingSpace parkingSpace = ParkingSpaceManager.getParkingSpace(spaceId);
-        if (parkingSpace != null) {
-            parkingSpace.free();
-            System.out.println("Parking space " + spaceId + " has been freed.");
-        } else {
-            System.out.println("Parking space not found.");
-        }
-
-        // Logic to handle payment refunds
-        long minutesSinceStart = ChronoUnit.MINUTES.between(startTime, LocalDateTime.now());
-        if (minutesSinceStart < 60) {
-            // No refund for the deposit if the client is a no-show within the first hour
-            System.out.println("No refund for the deposit as the client is a no-show within the first hour.");
-        } else {
-            double refundAmount = calculateRefund(); // Calculate any refund based on the remaining time
-            if (refundAmount > 0) {
-                processRefund(refundAmount);
-                System.out.println("Refund of " + refundAmount + " processed for booking: " + bookingId);
-            } else {
-                System.out.println("No refund applicable for booking: " + bookingId);
-            }
-        }
-
-        // Log the cancellation
-        System.out.println("Booking canceled: " + bookingId);
+        return 0.0;
     }
 
     // Method to extend parking time
@@ -139,10 +99,27 @@ public class Booking {
         System.out.println("New total cost: " + this.totalCost);
     }
 
+    public void cancelBooking() {
+        // Logic to handle payment refunds
+        long minutesSinceStart = ChronoUnit.MINUTES.between(startTime, LocalDateTime.now());
+        if (minutesSinceStart < 60) {
+            System.out.println("No refund for the deposit as the client is a no-show within the first hour.");
+        } else {
+            double refundAmount = calculateRefund();
+            if (refundAmount > 0) {
+                processRefund(refundAmount);
+                System.out.println("Refund of " + refundAmount + " processed for booking: " + bookingId);
+            } else {
+                System.out.println("No refund applicable for booking: " + bookingId);
+            }
+        }
+
+        System.out.println("Booking canceled: " + bookingId);
+    }
+
     // Method to process payment
     public void processPayment(double amount) {
         if (paymentMethod != null) {
-            // Logic to process the payment
             paymentMethod.processPayment(amount);
             System.out.println("Payment of " + amount + " processed for booking: " + bookingId);
         } else {
@@ -150,11 +127,10 @@ public class Booking {
         }
     }
 
-    //Method to process Refund
+    // Method to process Refund
     public void processRefund(double amount) {
         if (paymentMethod != null) {
-            // Logic to process the refund
-            paymentMethod.processRefund(amount); // Assuming the PaymentMethod has a processRefund method
+            paymentMethod.processRefund(amount);
             System.out.println("Refund of " + amount + " processed for booking: " + bookingId);
         } else {
             System.out.println("No payment method set for this booking. Cannot process refund.");

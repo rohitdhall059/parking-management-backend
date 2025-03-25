@@ -8,9 +8,9 @@ public abstract class PaymentMethod {
         this.amount = amount;
     }
 
-    public abstract void processPayment(double amount){
-        this.amount-=amount;
-    }
+    public abstract void processPayment(double amount);
+
+    public abstract void processRefund(double amount);
 
     public double getAmount() {
         return amount;
