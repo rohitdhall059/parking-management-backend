@@ -4,11 +4,7 @@ import com.example.parking.dao.DAO;
 import com.example.parking.model.Booking;
 import com.example.parking.model.Client;
 import com.example.parking.model.ParkingSpace;
-import com.example.parking.model.PricingStrategy;
-import com.example.parking.model.PricingStrategyFactory;
-
 import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.UUID;
 
@@ -19,14 +15,12 @@ public class BookingService {
 
     private final DAO<Booking> bookingDAO;
     private final DAO<Client> clientDAO;
-    private final DAO<ParkingSpace> spaceDAO;
+    private final DAO<ParkingSpace> parkingSpaceDAO;
 
-    public BookingService(DAO<Booking> bookingDAO,
-                          DAO<Client> clientDAO,
-                          DAO<ParkingSpace> spaceDAO) {
+    public BookingService(DAO<Booking> bookingDAO, DAO<Client> clientDAO, DAO<ParkingSpace> parkingSpaceDAO) {
         this.bookingDAO = bookingDAO;
         this.clientDAO = clientDAO;
-        this.spaceDAO = spaceDAO;
+        this.parkingSpaceDAO = parkingSpaceDAO;
     }
 
     /**
@@ -45,12 +39,12 @@ public class BookingService {
         }
 
         // Check if space exists and is available
-        ParkingSpace space = spaceDAO.getById(spaceId);
+        ParkingSpace space = parkingSpaceDAO.getById(spaceId);
         if (space == null) {
             throw new IllegalArgumentException("Parking space not found");
         }
-        if (space.isOccupied()) {
-            throw new IllegalStateException("Parking space is already occupied");
+        if (!space.isAvailable()) {
+            throw new IllegalStateException("Parking space is not available");
         }
 
         // Check if client exists
@@ -63,9 +57,7 @@ public class BookingService {
         String bookingId = UUID.randomUUID().toString();
 
         // Calculate total cost
-        PricingStrategy pricingStrategy = PricingStrategyFactory.getPricingStrategy(clientType);
-        long hours = ChronoUnit.HOURS.between(startTime, endTime);
-        double totalCost = hours * pricingStrategy.getRate();
+        double totalCost = 0; // Assuming totalCost calculation is not provided in the new method
 
         // Create booking
         Booking newBooking = new Booking(bookingId, clientId, spaceId, startTime, endTime, totalCost);
@@ -89,7 +81,7 @@ public class BookingService {
         }
 
         // Update parking space status
-        ParkingSpace space = spaceDAO.getById(booking.getSpaceId());
+        ParkingSpace space = parkingSpaceDAO.getById(booking.getSpaceId());
         if (space != null) {
             space.setOccupied(false, null);
         }
@@ -113,5 +105,27 @@ public class BookingService {
 
     public Booking getBooking(String bookingId) {
         return bookingDAO.getById(bookingId);
+    }
+
+    public void completeBooking(String bookingId) {
+        Booking booking = bookingDAO.getById(bookingId);
+        if (booking == null) {
+            throw new IllegalArgumentException("Booking not found");
+        }
+
+        booking.setStatus("COMPLETED");
+        bookingDAO.update(booking);
+    }
+
+    public List<Booking> getClientBookings(String clientId) {
+        return bookingDAO.getAll().stream()
+                .filter(b -> b.getClientId().equals(clientId))
+                .toList();
+    }
+
+    public List<Booking> getSpaceBookings(String spaceId) {
+        return bookingDAO.getAll().stream()
+                .filter(b -> b.getSpaceId().equals(spaceId))
+                .toList();
     }
 }

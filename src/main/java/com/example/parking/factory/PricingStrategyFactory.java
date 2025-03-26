@@ -1,20 +1,24 @@
 package com.example.parking.factory;
 
-import com.example.parking.model.*;
+import com.example.parking.model.pricing.FacultyPricing;
+import com.example.parking.model.pricing.StaffPricing;
+import com.example.parking.model.pricing.StudentPricing;
+import com.example.parking.model.pricing.VisitorPricing;
+import com.example.parking.model.pricing.PricingStrategy;
 
 public class PricingStrategyFactory {
     public static PricingStrategy getPricingStrategy(String clientType) {
-        switch (clientType.toLowerCase()) {
-            case "visitor":
+        switch (clientType.toUpperCase()) {
+            case "VISITOR":
                 return new VisitorPricing();
-            case "faculty":
+            case "FACULTY":
                 return new FacultyPricing();
-            case "staff":
+            case "STAFF":
                 return new StaffPricing();
-            case "student":
+            case "STUDENT":
                 return new StudentPricing();
             default:
-                return new VisitorPricing(); // Default to visitor pricing
+                return new VisitorPricing();
         }
     }
 } 

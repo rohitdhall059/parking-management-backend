@@ -2,8 +2,8 @@ package com.example.parking.service;
 
 import com.example.parking.dao.DAO;
 import com.example.parking.model.Client;
-
 import java.util.List;
+import java.util.UUID;
 
 /**
  * Handles all "client"-related business logic:
@@ -20,35 +20,34 @@ public class ClientService {
 
     /**
      * Registers a new client in the system.
-     * @param client the client object to register
-     * @throws IllegalArgumentException if the clientId already exists or data is invalid.
+     * @param name the client's name
+     * @param email the client's email
+     * @param password the client's password
+     * @return the registered client
+     * @throws IllegalArgumentException if the client with this email already exists
      */
-    public void registerClient(Client client) {
-        // 1) Validate input
-        if (client == null) {
-            throw new IllegalArgumentException("Client object cannot be null.");
-        }
-        if (client.getClientId() == null || client.getClientId().isEmpty()) {
-            throw new IllegalArgumentException("Client ID cannot be null or empty.");
-        }
-        if (client.getName() == null || client.getName().isEmpty()) {
-            throw new IllegalArgumentException("Client name cannot be null or empty.");
-        }
-        if (client.getEmail() == null || client.getEmail().isEmpty()) {
-            throw new IllegalArgumentException("Client email cannot be null or empty.");
+    public Client registerClient(String name, String email, String password) {
+        // Check if client already exists
+        List<Client> existingClients = clientDAO.getAll();
+        for (Client client : existingClients) {
+            if (client.getEmail().equals(email)) {
+                throw new IllegalArgumentException("Client with this email already exists");
+            }
         }
 
-        // 2) Check if this ID already exists
-        Client existing = clientDAO.getById(client.getClientId());
-        if (existing != null) {
-            throw new IllegalArgumentException("Client ID already in use: " + client.getClientId());
-        }
-
-        // 3) Set registration status
-        client.setRegistered(true); // Assume newly registered
-
-        // 4) Save via DAO
+        String clientId = UUID.randomUUID().toString();
+        Client client = new Client(clientId, name, email, password, null, null);
         clientDAO.save(client);
+        return client;
+    }
+
+    /**
+     * Retrieves a client from the DAO by ID.
+     * @param clientId the ID of the client to retrieve
+     * @return the client with the specified ID
+     */
+    public Client getClient(String clientId) {
+        return clientDAO.getById(clientId);
     }
 
     /**
@@ -62,27 +61,31 @@ public class ClientService {
     /**
      * Updates a client's registration status or other attributes.
      */
-    public void updateClient(Client updatedClient) {
-        if (updatedClient == null) {
-            throw new IllegalArgumentException("Client object is null.");
+    public void updateClient(Client client) {
+        if (client == null) {
+            throw new IllegalArgumentException("Client cannot be null");
         }
-        Client existing = clientDAO.getById(updatedClient.getClientId());
-        if (existing == null) {
-            throw new IllegalArgumentException("No client found with ID: " + updatedClient.getClientId());
-        }
-
-        // Merge fields if needed, or just rely on updatedClient
-        clientDAO.update(updatedClient);
+        clientDAO.update(client);
     }
 
     /**
      * Delete a client from the system, if needed.
      */
     public void deleteClient(String clientId) {
-        Client existing = clientDAO.getById(clientId);
-        if (existing == null) {
-            throw new IllegalArgumentException("No client found with ID: " + clientId);
-        }
         clientDAO.delete(clientId);
+    }
+
+    /**
+     * Logs in a client.
+     * @param email the client's email
+     * @param password the client's password
+     * @return the logged-in client, or null if no client matches the provided email and password
+     */
+    public Client login(String email, String password) {
+        List<Client> clients = clientDAO.getAll();
+        return clients.stream()
+                .filter(c -> c.getEmail().equals(email) && c.getPassword().equals(password))
+                .findFirst()
+                .orElse(null);
     }
 }

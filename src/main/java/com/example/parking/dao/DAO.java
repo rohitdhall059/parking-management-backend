@@ -3,9 +3,9 @@ package com.example.parking.dao;
 import java.util.List;
 
 public interface DAO<T> {
+    void save(T item);
     T getById(String id);
     List<T> getAll();
-    void save(T obj);
-    void update(T obj);
+    void update(T item);
     void delete(String id);
 }
