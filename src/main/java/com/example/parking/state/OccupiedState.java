@@ -1,6 +1,6 @@
 package com.example.parking.state;
 
-import com.example.parking.model.Car;
+import com.example.parking.model.car.Car;
 import com.example.parking.model.ParkingSpace;
 
 public class OccupiedState implements ParkingSpaceState {
@@ -12,23 +12,21 @@ public class OccupiedState implements ParkingSpaceState {
 
     @Override
     public void occupy(Car car) {
-        System.out.println("Parking space " + parkingSpace.getSpaceId() + " is already occupied");
+        throw new IllegalStateException("Cannot occupy an already occupied space");
     }
 
     @Override
     public void vacate() {
         parkingSpace.setOccupied(false, null);
-        System.out.println("Parking space " + parkingSpace.getSpaceId() + " is now available");
     }
 
     @Override
     public void enable() {
-        System.out.println("Parking space " + parkingSpace.getSpaceId() + " is already enabled");
+        throw new IllegalStateException("Space is already enabled");
     }
 
     @Override
     public void disable() {
         parkingSpace.setEnabled(false);
-        System.out.println("Parking space " + parkingSpace.getSpaceId() + " is now disabled");
     }
 } 

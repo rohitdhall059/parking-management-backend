@@ -1,26 +1,26 @@
 package com.example.parking.model.payment;
 
 public class DebitCard implements PaymentMethod {
-    private double amount;
     private String cardNumber;
-    private String credential;
+    private String pin;
+    private double amount;
 
-    public DebitCard(double amount, String cardNumber, String credential) {
-        this.amount = amount;
+    public DebitCard(String cardNumber, String pin) {
         this.cardNumber = cardNumber;
-        this.credential = credential;
+        this.pin = pin;
+        this.amount = 0.0;
     }
 
     @Override
     public boolean processPayment(double amount) {
-        // Simulate debit card payment processing
-        System.out.println("Processing debit card payment of $" + amount);
+        this.amount = amount;
+        // In a real implementation, this would connect to a payment processor
         return true;
     }
 
     @Override
     public String getType() {
-        return "DEBIT";
+        return "DEBIT_CARD";
     }
 
     @Override
@@ -30,6 +30,10 @@ public class DebitCard implements PaymentMethod {
 
     @Override
     public String getCredential() {
-        return credential;
+        return pin;
+    }
+
+    public double getAmount() {
+        return amount;
     }
 } 

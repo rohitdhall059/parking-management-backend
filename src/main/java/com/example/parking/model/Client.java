@@ -2,53 +2,43 @@ package com.example.parking.model;
 
 import com.example.parking.model.car.Car;
 
-public class Client {
-    private String clientId;
-    private String name;
-    private String email;
-    private String password;
+public abstract class Client {
+    private final String id;
+    private final String name;
+    private final String email;
+    private String status;
     private Car car;
-    private String type;
 
-    public Client(String clientId, String name, String email, String password, Car car, String type) {
-        this.clientId = clientId;
+    protected Client(String id, String name, String email) {
+        this.id = id;
         this.name = name;
         this.email = email;
-        this.password = password;
-        this.car = car;
-        this.type = type;
+        this.status = "ACTIVE";
+        this.car = null;
     }
 
-    public String getClientId() {
-        return clientId;
+    public Client(String clientId, String name2, String email2, String password, Object object, String string) {
+        //TODO Auto-generated constructor stub
     }
 
-    public void setClientId(String clientId) {
-        this.clientId = clientId;
+    public String getId() {
+        return id;
     }
 
     public String getName() {
         return name;
     }
 
-    public void setName(String name) {
-        this.name = name;
-    }
-
     public String getEmail() {
         return email;
     }
 
-    public void setEmail(String email) {
-        this.email = email;
+    public String getStatus() {
+        return status;
     }
 
-    public String getPassword() {
-        return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
+    public void setStatus(String status) {
+        this.status = status;
     }
 
     public Car getCar() {
@@ -59,11 +49,5 @@ public class Client {
         this.car = car;
     }
 
-    public String getType() {
-        return type;
-    }
-
-    public void setType(String type) {
-        this.type = type;
-    }
+    public abstract double getDiscountRate();
 } 

@@ -1,34 +1,37 @@
 package com.example.parking.model;
 
+import com.example.parking.model.car.Car;
+import com.example.parking.model.state.ParkingSpaceState;
+import com.example.parking.model.state.AvailableState;
+import com.example.parking.model.state.OccupiedState;
+import com.example.parking.model.state.DisabledState;
 import com.example.parking.observer.Observer;
 import com.example.parking.observer.Subject;
-import com.example.parking.state.*;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class ParkingSpace implements Subject {
-    private String spaceId;
-    private String location;
-    private String type;
-    private boolean isOccupied;
-    private boolean isEnabled;
-    private Car parkedCar;
+    private final String id;
+    private final String location;
+    private final String type;
     private ParkingSpaceState state;
+    private boolean enabled;
+    private double rate;
     private List<Observer> observers;
 
-    public ParkingSpace(String spaceId, String location, String type) {
-        this.spaceId = spaceId;
+    public ParkingSpace(String id, String location, String type) {
+        this.id = id;
         this.location = location;
         this.type = type;
-        this.isOccupied = false;
-        this.isEnabled = true;
-        this.observers = new ArrayList<>();
         this.state = new AvailableState(this);
+        this.enabled = true;
+        this.rate = 0.0;
+        this.observers = new ArrayList<>();
     }
 
-    public String getSpaceId() {
-        return spaceId;
+    public String getId() {
+        return id;
     }
 
     public String getLocation() {
@@ -40,44 +43,34 @@ public class ParkingSpace implements Subject {
     }
 
     public boolean isOccupied() {
-        return isOccupied;
-    }
-
-    public boolean isEnabled() {
-        return isEnabled;
-    }
-
-    public Car getParkedCar() {
-        return parkedCar;
+        return state instanceof OccupiedState;
     }
 
     public void setOccupied(boolean occupied, Car car) {
-        this.isOccupied = occupied;
-        this.parkedCar = car;
         if (occupied) {
-            state = new OccupiedState(this);
+            state = new OccupiedState(this, car);
         } else {
             state = new AvailableState(this);
         }
         notifyObservers();
+    }
+
+    public Car getCurrentCar() {
+        return state instanceof OccupiedState ? ((OccupiedState) state).getCar() : null;
+    }
+
+    public boolean isEnabled() {
+        return enabled;
     }
 
     public void setEnabled(boolean enabled) {
-        this.isEnabled = enabled;
-        if (enabled) {
-            state = new AvailableState(this);
-        } else {
+        this.enabled = enabled;
+        if (!enabled) {
             state = new DisabledState(this);
+        } else if (!isOccupied()) {
+            state = new AvailableState(this);
         }
         notifyObservers();
-    }
-
-    public void occupy(Car car) {
-        state.occupy(car);
-    }
-
-    public void vacate() {
-        state.vacate();
     }
 
     public void enable() {
@@ -86,6 +79,27 @@ public class ParkingSpace implements Subject {
 
     public void disable() {
         state.disable();
+    }
+
+    public double getRate() {
+        return rate;
+    }
+
+    public void setRate(double rate) {
+        this.rate = rate;
+    }
+
+    public ParkingSpaceState getState() {
+        return state;
+    }
+
+    public void setState(ParkingSpaceState state) {
+        this.state = state;
+        notifyObservers();
+    }
+
+    public boolean isAvailable() {
+        return enabled && !isOccupied();
     }
 
     @Override

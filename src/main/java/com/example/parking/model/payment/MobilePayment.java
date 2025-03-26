@@ -1,35 +1,37 @@
 package com.example.parking.model.payment;
 
 public class MobilePayment implements PaymentMethod {
+    private String phoneNumber;
     private double amount;
-    private String cardNumber;
-    private String credential;
 
-    public MobilePayment(double amount, String cardNumber, String credential) {
-        this.amount = amount;
-        this.cardNumber = cardNumber;
-        this.credential = credential;
+    public MobilePayment(String phoneNumber) {
+        this.phoneNumber = phoneNumber;
+        this.amount = 0.0;
     }
 
     @Override
     public boolean processPayment(double amount) {
-        // Simulate mobile payment processing
-        System.out.println("Processing mobile payment of $" + amount);
+        this.amount = amount;
+        // In a real implementation, this would connect to a mobile payment processor
         return true;
     }
 
     @Override
     public String getType() {
-        return "MOBILE";
+        return "MOBILE_PAYMENT";
     }
 
     @Override
     public String getCardNumber() {
-        return cardNumber;
+        return phoneNumber;
     }
 
     @Override
     public String getCredential() {
-        return credential;
+        return "N/A"; // Mobile payments typically use biometric or app-based authentication
+    }
+
+    public double getAmount() {
+        return amount;
     }
 } 

@@ -1,16 +1,21 @@
 package com.example.parking.ui;
 
+import com.example.parking.model.Booking;
+import com.example.parking.model.payment.PaymentMethod;
+import com.example.parking.service.BookingService;
+import com.example.parking.dao.BookingDAO;
+import com.example.parking.dao.ClientDAO;
+import com.example.parking.dao.ParkingSpaceDAO;
 import com.example.parking.dao.CSVBookingDAO;
 import com.example.parking.dao.CSVClientDAO;
 import com.example.parking.dao.CSVParkingSpaceDAO;
-import com.example.parking.service.BookingService;
+import com.example.parking.factory.PaymentMethodFactory;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 
 /**
  * A complete Swing UI for creating bookings, including a main method
@@ -18,92 +23,128 @@ import java.time.format.DateTimeFormatter;
  */
 public class BookingUI extends JFrame {
 
-    private JTextField bookingIdField, clientIdField, spaceIdField, startTimeField, endTimeField;
-    private JButton createBookingButton;
+    private final BookingService bookingService;
+    private final JTextField clientIdField;
+    private final JTextField spaceIdField;
+    private final JTextField startTimeField;
+    private final JTextField endTimeField;
+    private final JComboBox<String> paymentTypeCombo;
+    private final JTextField cardNumberField;
+    private final JTextField credentialField;
+    private final JTextArea resultArea;
 
-    // The BookingService is injected via the constructor
-    private BookingService bookingService;
+    public BookingUI() {
+        // Initialize DAOs
+        ClientDAO clientDAO = new CSVClientDAO();
+        ParkingSpaceDAO parkingSpaceDAO = new CSVParkingSpaceDAO();
+        BookingDAO bookingDAO = new CSVBookingDAO(clientDAO, parkingSpaceDAO);
 
-    public BookingUI(BookingService bookingService) {
-        this.bookingService = bookingService;
-        initialize();
-    }
+        // Initialize BookingService
+        bookingService = new BookingService(bookingDAO, clientDAO, parkingSpaceDAO);
 
-    private void initialize() {
-        setTitle("Create Booking");
+        // Create UI components
+        setTitle("Parking Booking System");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLayout(new BorderLayout());
 
-        // Use a 6x2 grid layout with 10px gaps
-        GridLayout layout = new GridLayout(6, 2, 10, 10);
-        JPanel panel = new JPanel(layout);
-        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        // Input panel
+        JPanel inputPanel = new JPanel(new GridLayout(7, 2, 5, 5));
+        inputPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-        // Row 1: Booking ID
-        panel.add(new JLabel("Booking ID:"));
-        bookingIdField = new JTextField();
-        panel.add(bookingIdField);
-
-        // Row 2: Client ID
-        panel.add(new JLabel("Client ID:"));
+        inputPanel.add(new JLabel("Client ID:"));
         clientIdField = new JTextField();
-        panel.add(clientIdField);
+        inputPanel.add(clientIdField);
 
-        // Row 3: Space ID
-        panel.add(new JLabel("Space ID:"));
+        inputPanel.add(new JLabel("Space ID:"));
         spaceIdField = new JTextField();
-        panel.add(spaceIdField);
+        inputPanel.add(spaceIdField);
 
-        // Row 4: Start Time (yyyy-MM-dd HH:mm)
-        panel.add(new JLabel("Start Time (yyyy-MM-dd HH:mm):"));
+        inputPanel.add(new JLabel("Start Time (yyyy-MM-dd HH:mm):"));
         startTimeField = new JTextField();
-        panel.add(startTimeField);
+        inputPanel.add(startTimeField);
 
-        // Row 5: End Time (yyyy-MM-dd HH:mm)
-        panel.add(new JLabel("End Time (yyyy-MM-dd HH:mm):"));
+        inputPanel.add(new JLabel("End Time (yyyy-MM-dd HH:mm):"));
         endTimeField = new JTextField();
-        panel.add(endTimeField);
+        inputPanel.add(endTimeField);
 
-        // Row 6: Create Booking Button
-        createBookingButton = new JButton("Create Booking");
-        // Add a filler label to align the button in the grid
-        panel.add(new JLabel(""));
-        panel.add(createBookingButton);
+        inputPanel.add(new JLabel("Payment Type:"));
+        paymentTypeCombo = new JComboBox<>(new String[]{"credit", "debit", "mobile"});
+        inputPanel.add(paymentTypeCombo);
 
-        createBookingButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                createBooking();
-            }
-        });
+        inputPanel.add(new JLabel("Card Number:"));
+        cardNumberField = new JTextField();
+        inputPanel.add(cardNumberField);
 
-        add(panel);
-        pack(); // Size the frame based on the layout
-        setLocationRelativeTo(null); // Center on screen
+        inputPanel.add(new JLabel("Credential:"));
+        credentialField = new JTextField();
+        inputPanel.add(credentialField);
+
+        // Button panel
+        JPanel buttonPanel = new JPanel();
+        JButton bookButton = new JButton("Book Space");
+        JButton viewButton = new JButton("View Bookings");
+        buttonPanel.add(bookButton);
+        buttonPanel.add(viewButton);
+
+        // Result area
+        resultArea = new JTextArea(10, 40);
+        resultArea.setEditable(false);
+        JScrollPane scrollPane = new JScrollPane(resultArea);
+
+        // Add components to frame
+        add(inputPanel, BorderLayout.NORTH);
+        add(buttonPanel, BorderLayout.CENTER);
+        add(scrollPane, BorderLayout.SOUTH);
+
+        // Add action listeners
+        bookButton.addActionListener(e -> createBooking());
+        viewButton.addActionListener(e -> viewBookings());
+
+        pack();
+        setLocationRelativeTo(null);
     }
 
     private void createBooking() {
         try {
-            // Get user input
-            String bookingId = bookingIdField.getText().trim();
-            String clientId = clientIdField.getText().trim();
-            String spaceId = spaceIdField.getText().trim();
-            String startStr = startTimeField.getText().trim(); // e.g., "2025-03-20 10:30"
-            String endStr = endTimeField.getText().trim();     // e.g., "2025-03-20 12:00"
+            String clientId = clientIdField.getText();
+            String spaceId = spaceIdField.getText();
+            String startTimeStr = startTimeField.getText();
+            String endTimeStr = endTimeField.getText();
+            String paymentType = (String) paymentTypeCombo.getSelectedItem();
+            String cardNumber = cardNumberField.getText();
+            String credential = credentialField.getText();
 
-            // Parse date/time with a space using a custom formatter
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
-            LocalDateTime startTime = LocalDateTime.parse(startStr, formatter);
-            LocalDateTime endTime = LocalDateTime.parse(endStr, formatter);
+            LocalDateTime startTime = LocalDateTime.parse(startTimeStr, formatter);
+            LocalDateTime endTime = LocalDateTime.parse(endTimeStr, formatter);
 
-            // Call the backend service to create the booking
-            bookingService.createBooking(bookingId, clientId, spaceId, startTime, endTime);
+            PaymentMethod paymentMethod = PaymentMethodFactory.createPaymentMethod(
+                    paymentType, cardNumber, credential);
 
-            // Show success
-            JOptionPane.showMessageDialog(this, "Booking created successfully!");
-        } catch (Exception ex) {
-            // Show error if parsing or creation fails
-            JOptionPane.showMessageDialog(this, "Error: " + ex.getMessage(),
-                    "Booking Failed", JOptionPane.ERROR_MESSAGE);
+            Booking booking = bookingService.createBooking(clientId, spaceId, startTime, endTime, paymentMethod);
+            resultArea.setText("Booking created successfully!\nBooking ID: " + booking.getId());
+        } catch (Exception e) {
+            resultArea.setText("Error creating booking: " + e.getMessage());
+        }
+    }
+
+    private void viewBookings() {
+        try {
+            String clientId = clientIdField.getText();
+            List<Booking> bookings = bookingService.getBookingsByClient(clientId);
+            
+            StringBuilder sb = new StringBuilder("Bookings for client " + clientId + ":\n\n");
+            for (Booking booking : bookings) {
+                sb.append("Booking ID: ").append(booking.getId()).append("\n");
+                sb.append("Space ID: ").append(booking.getParkingSpace().getId()).append("\n");
+                sb.append("Start Time: ").append(booking.getStartTime()).append("\n");
+                sb.append("End Time: ").append(booking.getEndTime()).append("\n");
+                sb.append("Status: ").append(booking.getStatus()).append("\n");
+                sb.append("Amount: ").append(booking.getAmount()).append("\n\n");
+            }
+            resultArea.setText(sb.toString());
+        } catch (Exception e) {
+            resultArea.setText("Error viewing bookings: " + e.getMessage());
         }
     }
 
@@ -113,17 +154,8 @@ public class BookingUI extends JFrame {
      * then pass a valid BookingService into the UI constructor.
      */
     public static void main(String[] args) {
-        // 1. Create DAO objects (adjust file paths to match your project)
-        CSVBookingDAO bookingDAO = new CSVBookingDAO("data/bookings.csv");
-        CSVClientDAO clientDAO = new CSVClientDAO("data/clients.csv");
-        CSVParkingSpaceDAO spaceDAO = new CSVParkingSpaceDAO("data/parkingspaces.csv");
-
-        // 2. Create the BookingService
-        BookingService bookingService = new BookingService(bookingDAO, clientDAO, spaceDAO);
-
-        // 3. Launch the UI on the Event Dispatch Thread
         SwingUtilities.invokeLater(() -> {
-            new BookingUI(bookingService).setVisible(true);
+            new BookingUI().setVisible(true);
         });
     }
 }

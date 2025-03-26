@@ -1,10 +1,14 @@
 package com.example.parking.service;
 
-import com.example.parking.dao.DAO;
+import com.example.parking.dao.BookingDAO;
+import com.example.parking.dao.ClientDAO;
+import com.example.parking.dao.ParkingSpaceDAO;
 import com.example.parking.model.Booking;
-import com.example.parking.model.Client;
+import com.example.parking.model.client.Client;
 import com.example.parking.model.ParkingSpace;
+import com.example.parking.model.payment.PaymentMethod;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.UUID;
 
@@ -13,11 +17,11 @@ import java.util.UUID;
  */
 public class BookingService {
 
-    private final DAO<Booking> bookingDAO;
-    private final DAO<Client> clientDAO;
-    private final DAO<ParkingSpace> parkingSpaceDAO;
+    private final BookingDAO bookingDAO;
+    private final ClientDAO clientDAO;
+    private final ParkingSpaceDAO parkingSpaceDAO;
 
-    public BookingService(DAO<Booking> bookingDAO, DAO<Client> clientDAO, DAO<ParkingSpace> parkingSpaceDAO) {
+    public BookingService(BookingDAO bookingDAO, ClientDAO clientDAO, ParkingSpaceDAO parkingSpaceDAO) {
         this.bookingDAO = bookingDAO;
         this.clientDAO = clientDAO;
         this.parkingSpaceDAO = parkingSpaceDAO;
@@ -29,46 +33,48 @@ public class BookingService {
      * @param spaceId   Must match an existing ParkingSpace that is not occupied.
      * @param startTime Start of the booking.
      * @param endTime   End of the booking. Should be after startTime.
-     * @param clientType Type of the client.
+     * @param paymentMethod Type of the client.
      * @return the newly created Booking object, or throws exception if invalid.
      */
-    public Booking createBooking(String clientId, String spaceId, LocalDateTime startTime, LocalDateTime endTime, String clientType) {
-        // Validate inputs
-        if (clientId == null || spaceId == null || startTime == null || endTime == null || clientType == null) {
-            throw new IllegalArgumentException("All parameters must be non-null");
-        }
-
-        // Check if space exists and is available
-        ParkingSpace space = parkingSpaceDAO.getById(spaceId);
-        if (space == null) {
-            throw new IllegalArgumentException("Parking space not found");
-        }
-        if (!space.isAvailable()) {
-            throw new IllegalStateException("Parking space is not available");
-        }
-
-        // Check if client exists
+    public Booking createBooking(String clientId, String spaceId, LocalDateTime startTime, LocalDateTime endTime, PaymentMethod paymentMethod) {
+        // Validate client
         Client client = clientDAO.getById(clientId);
         if (client == null) {
-            throw new IllegalArgumentException("Client not found");
+            throw new IllegalArgumentException("Client not found: " + clientId);
         }
 
-        // Generate booking ID
+        // Validate parking space
+        ParkingSpace space = parkingSpaceDAO.getById(spaceId);
+        if (space == null) {
+            throw new IllegalArgumentException("Parking space not found: " + spaceId);
+        }
+
+        // Check if space is available
+        if (space.isOccupied()) {
+            throw new IllegalStateException("Parking space is already occupied: " + spaceId);
+        }
+
+        // Generate unique booking ID
         String bookingId = UUID.randomUUID().toString();
 
-        // Calculate total cost
-        double totalCost = 0; // Assuming totalCost calculation is not provided in the new method
+        // Calculate booking amount based on duration and space rate
+        Duration duration = Duration.between(startTime, endTime);
+        double hours = duration.toHours() + (duration.toMinutesPart() > 0 ? 1 : 0);
+        double amount = hours * space.getRate();
 
         // Create booking
-        Booking newBooking = new Booking(bookingId, clientId, spaceId, startTime, endTime, totalCost);
-
-        // Update parking space status
-        space.setOccupied(true, null);
+        Booking booking = new Booking(bookingId, client, space, startTime, endTime, paymentMethod);
+        booking.setAmount(amount);
+        booking.setStatus("CONFIRMED");
 
         // Save booking
-        bookingDAO.save(newBooking);
+        bookingDAO.save(booking);
 
-        return newBooking;
+        // Update parking space status
+        space.setOccupied(true, client.getCar());
+        parkingSpaceDAO.update(space);
+
+        return booking;
     }
 
     /**
@@ -77,23 +83,17 @@ public class BookingService {
     public void cancelBooking(String bookingId) {
         Booking booking = bookingDAO.getById(bookingId);
         if (booking == null) {
-            throw new IllegalArgumentException("Booking not found");
+            throw new IllegalArgumentException("Booking not found: " + bookingId);
         }
+
+        // Update booking status
+        booking.setStatus("CANCELLED");
+        bookingDAO.update(booking);
 
         // Update parking space status
-        ParkingSpace space = parkingSpaceDAO.getById(booking.getSpaceId());
-        if (space != null) {
-            space.setOccupied(false, null);
-        }
-
-        // Process refund if applicable
-        double refundAmount = booking.calculateRefund();
-        if (refundAmount > 0) {
-            booking.processRefund(refundAmount);
-        }
-
-        // Delete booking
-        bookingDAO.delete(bookingId);
+        ParkingSpace space = booking.getParkingSpace();
+        space.setOccupied(false, null);
+        parkingSpaceDAO.update(space);
     }
 
     /**
@@ -110,22 +110,26 @@ public class BookingService {
     public void completeBooking(String bookingId) {
         Booking booking = bookingDAO.getById(bookingId);
         if (booking == null) {
-            throw new IllegalArgumentException("Booking not found");
+            throw new IllegalArgumentException("Booking not found: " + bookingId);
         }
 
+        // Update booking status
         booking.setStatus("COMPLETED");
         bookingDAO.update(booking);
+
+        // Update parking space status
+        ParkingSpace space = booking.getParkingSpace();
+        space.setOccupied(false, null);
+        parkingSpaceDAO.update(space);
     }
 
-    public List<Booking> getClientBookings(String clientId) {
-        return bookingDAO.getAll().stream()
-                .filter(b -> b.getClientId().equals(clientId))
-                .toList();
+    public List<Booking> getBookingsByClient(String clientId) {
+        return bookingDAO.getByClientId(clientId);
     }
 
-    public List<Booking> getSpaceBookings(String spaceId) {
+    public List<Booking> getBookingsBySpace(String spaceId) {
         return bookingDAO.getAll().stream()
-                .filter(b -> b.getSpaceId().equals(spaceId))
+                .filter(b -> b.getParkingSpace().getId().equals(spaceId))
                 .toList();
     }
 }

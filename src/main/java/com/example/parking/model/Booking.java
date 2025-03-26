@@ -1,70 +1,54 @@
 package com.example.parking.model;
 
+import com.example.parking.model.client.Client;
+import com.example.parking.model.payment.PaymentMethod;
 import java.time.LocalDateTime;
 
 public class Booking {
-    private String bookingId;
-    private String clientId;
-    private String spaceId;
-    private LocalDateTime startTime;
-    private LocalDateTime endTime;
-    private double totalCost;
+    private final String id;
+    private final Client client;
+    private final ParkingSpace parkingSpace;
+    private final LocalDateTime startTime;
+    private final LocalDateTime endTime;
+    private final PaymentMethod paymentMethod;
     private String status;
+    private double amount;
+    private boolean isRefunded;
 
-    public Booking(String bookingId, String clientId, String spaceId, String status) {
-        this.bookingId = bookingId;
-        this.clientId = clientId;
-        this.spaceId = spaceId;
-        this.startTime = LocalDateTime.now();
-        this.status = status;
+    public Booking(String id, Client client, ParkingSpace parkingSpace, LocalDateTime startTime, LocalDateTime endTime, PaymentMethod paymentMethod) {
+        this.id = id;
+        this.client = client;
+        this.parkingSpace = parkingSpace;
+        this.startTime = startTime;
+        this.endTime = endTime;
+        this.paymentMethod = paymentMethod;
+        this.status = "PENDING";
+        this.amount = 0.0;
+        this.isRefunded = false;
     }
 
-    public String getBookingId() {
-        return bookingId;
+    public String getId() {
+        return id;
     }
 
-    public void setBookingId(String bookingId) {
-        this.bookingId = bookingId;
+    public Client getClient() {
+        return client;
     }
 
-    public String getClientId() {
-        return clientId;
-    }
-
-    public void setClientId(String clientId) {
-        this.clientId = clientId;
-    }
-
-    public String getSpaceId() {
-        return spaceId;
-    }
-
-    public void setSpaceId(String spaceId) {
-        this.spaceId = spaceId;
+    public ParkingSpace getParkingSpace() {
+        return parkingSpace;
     }
 
     public LocalDateTime getStartTime() {
         return startTime;
     }
 
-    public void setStartTime(LocalDateTime startTime) {
-        this.startTime = startTime;
-    }
-
     public LocalDateTime getEndTime() {
         return endTime;
     }
 
-    public void setEndTime(LocalDateTime endTime) {
-        this.endTime = endTime;
-    }
-
-    public double getTotalCost() {
-        return totalCost;
-    }
-
-    public void setTotalCost(double totalCost) {
-        this.totalCost = totalCost;
+    public PaymentMethod getPaymentMethod() {
+        return paymentMethod;
     }
 
     public String getStatus() {
@@ -73,5 +57,37 @@ public class Booking {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public double getAmount() {
+        return amount;
+    }
+
+    public void setAmount(double amount) {
+        this.amount = amount;
+    }
+
+    public boolean isRefunded() {
+        return isRefunded;
+    }
+
+    public void setRefunded(boolean refunded) {
+        isRefunded = refunded;
+    }
+
+    public double calculateRefund() {
+        if (isRefunded || endTime.isBefore(LocalDateTime.now())) {
+            return 0.0;
+        }
+        // Simple refund calculation: 50% of the amount
+        return amount * 0.5;
+    }
+
+    public void processRefund(double refundAmount) {
+        if (!isRefunded) {
+            this.amount -= refundAmount;
+            this.isRefunded = true;
+            this.status = "REFUNDED";
+        }
     }
 } 

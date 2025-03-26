@@ -1,90 +1,151 @@
 package com.example.parking.dao;
 
-import com.example.parking.model.*;
+import com.example.parking.model.client.Client;
+import com.example.parking.model.car.Car;
+import com.example.parking.factory.ClientFactory;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 
-public class CSVClientDAO implements DAO<Client> {
+/**
+ * Handles client data persistence using CSV file storage.
+ * Provides CRUD operations for client records.
+ */
+public class CSVClientDAO implements ClientDAO {
+    private final String filePath;
 
-    private final String csvFilePath;
-    private List<Client> clients;
-
-    public CSVClientDAO(String csvFilePath) {
-        this.csvFilePath = csvFilePath;
-        this.clients = new ArrayList<>();
-        loadFromFile();
-        // Create the directory if it doesn't exist
-        File file = new File(csvFilePath);
-        file.getParentFile().mkdirs();
+    public CSVClientDAO() {
+        this.filePath = "clients.csv";
     }
 
-    private void loadFromFile() {
-        File file = new File(csvFilePath);
-        if (!file.exists()) {
-            return;
+    /**
+     * Saves a new client record to the CSV file.
+     * Appends the record to the end of the file.
+     */
+    @Override
+    public void save(Client client) {
+        try (FileWriter fw = new FileWriter(filePath, true);
+             BufferedWriter bw = new BufferedWriter(fw);
+             PrintWriter out = new PrintWriter(bw)) {
+            out.println(formatClient(client));
+        } catch (IOException e) {
+            throw new RuntimeException("Error saving client: " + e.getMessage());
         }
+    }
 
-        try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+    /**
+     * Retrieves a client by their unique ID.
+     * Returns null if no client is found with the given ID.
+     */
+    @Override
+    public Client getById(String id) {
+        try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
             String line;
-            while ((line = reader.readLine()) != null) {
+            while ((line = br.readLine()) != null) {
                 String[] parts = line.split(",");
-                if (parts.length >= 3) {
-                    Client client = new Client(parts[0], parts[1], parts[2], null, null, null);
-                    clients.add(client);
+                if (parts[0].equals(id)) {
+                    return parseClient(parts);
                 }
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            throw new RuntimeException("Error reading client: " + e.getMessage());
         }
+        return null;
     }
 
-    private void saveToFile() {
-        try (PrintWriter writer = new PrintWriter(new FileWriter(csvFilePath))) {
-            for (Client client : clients) {
-                writer.println(String.format("%s,%s,%s",
-                    client.getClientId(),
-                    client.getName(),
-                    client.getEmail()));
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    @Override
-    public Client getById(String id) {
-        return clients.stream()
-                .filter(c -> c.getClientId().equals(id))
-                .findFirst()
-                .orElse(null);
-    }
-
+    /**
+     * Retrieves all client records from the CSV file.
+     */
     @Override
     public List<Client> getAll() {
-        return new ArrayList<>(clients);
+        List<Client> clients = new ArrayList<>();
+        try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                String[] parts = line.split(",");
+                clients.add(parseClient(parts));
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("Error reading clients: " + e.getMessage());
+        }
+        return clients;
     }
 
-    @Override
-    public void save(Client client) {
-        clients.add(client);
-        saveToFile();
-    }
-
+    /**
+     * Updates an existing client record in the CSV file.
+     * Replaces the entire file content to update the record.
+     */
     @Override
     public void update(Client client) {
-        for (int i = 0; i < clients.size(); i++) {
-            if (clients.get(i).getClientId().equals(client.getClientId())) {
-                clients.set(i, client);
-                saveToFile();
-                return;
+        List<Client> clients = getAll();
+        try (FileWriter fw = new FileWriter(filePath, false);
+             BufferedWriter bw = new BufferedWriter(fw);
+             PrintWriter out = new PrintWriter(bw)) {
+            for (Client c : clients) {
+                if (c.getId().equals(client.getId())) {
+                    out.println(formatClient(client));
+                } else {
+                    out.println(formatClient(c));
+                }
             }
+        } catch (IOException e) {
+            throw new RuntimeException("Error updating client: " + e.getMessage());
         }
     }
 
+    /**
+     * Removes a client record from the CSV file.
+     * Recreates the file without the deleted record.
+     */
     @Override
     public void delete(String id) {
-        clients.removeIf(c -> c.getClientId().equals(id));
-        saveToFile();
+        List<Client> clients = getAll();
+        try (FileWriter fw = new FileWriter(filePath, false);
+             BufferedWriter bw = new BufferedWriter(fw);
+             PrintWriter out = new PrintWriter(bw)) {
+            for (Client client : clients) {
+                if (!client.getId().equals(id)) {
+                    out.println(formatClient(client));
+                }
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("Error deleting client: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Formats a client object into a CSV string.
+     * Includes client ID, name, email, status, and car license plate.
+     */
+    private String formatClient(Client client) {
+        return String.format("%s,%s,%s,%s,%s",
+                client.getId(),
+                client.getName(),
+                client.getEmail(),
+                client.getStatus(),
+                client.getCar() != null ? client.getCar().getLicensePlate() : "");
+    }
+
+    /**
+     * Parses a CSV line into a Client object.
+     * Creates the appropriate client type based on ID prefix.
+     */
+    private Client parseClient(String[] parts) {
+        String id = parts[0];
+        String name = parts[1];
+        String email = parts[2];
+        String status = parts[3];
+        String carPlate = parts[4];
+
+        String type = id.substring(0, 2).toUpperCase();
+        Client client = ClientFactory.createClient(type, id, name, email);
+        client.setStatus(status);
+        
+        if (carPlate != null && !carPlate.isEmpty()) {
+            Car car = new Car(carPlate);
+            client.setCar(car);
+        }
+        
+        return client;
     }
 }

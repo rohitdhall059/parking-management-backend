@@ -9,6 +9,10 @@ public class Car {
         this.licensePlate = licensePlate;
     }
 
+    public Car(String carPlate) {
+        //TODO Auto-generated constructor stub
+    }
+
     public String getModel() {
         return model;
     }

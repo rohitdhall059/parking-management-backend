@@ -1,9 +1,9 @@
 package com.example.parking.service;
 
-import com.example.parking.dao.DAO;
 import com.example.parking.model.ParkingSpace;
+import com.example.parking.dao.ParkingSpaceDAO;
 import java.util.List;
-import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * Handles parking space operations:
@@ -13,21 +13,10 @@ import java.util.UUID;
  */
 public class ParkingSpaceService {
 
-    private final DAO<ParkingSpace> parkingSpaceDAO;
+    private final ParkingSpaceDAO parkingSpaceDAO;
 
-    public ParkingSpaceService(DAO<ParkingSpace> parkingSpaceDAO) {
+    public ParkingSpaceService(ParkingSpaceDAO parkingSpaceDAO) {
         this.parkingSpaceDAO = parkingSpaceDAO;
-    }
-
-    public ParkingSpace createParkingSpace(String location, String type) {
-        String spaceId = UUID.randomUUID().toString();
-        ParkingSpace space = new ParkingSpace(spaceId, location, type);
-        parkingSpaceDAO.save(space);
-        return space;
-    }
-
-    public ParkingSpace getParkingSpace(String spaceId) {
-        return parkingSpaceDAO.getById(spaceId);
     }
 
     public List<ParkingSpace> getAllParkingSpaces() {
@@ -37,47 +26,52 @@ public class ParkingSpaceService {
     public List<ParkingSpace> getAvailableParkingSpaces() {
         return parkingSpaceDAO.getAll().stream()
                 .filter(ParkingSpace::isAvailable)
-                .toList();
+                .collect(Collectors.toList());
     }
 
-    public void updateParkingSpace(ParkingSpace space) {
-        if (space == null) {
-            throw new IllegalArgumentException("Parking space cannot be null");
+    public ParkingSpace getParkingSpace(String spaceId) {
+        return parkingSpaceDAO.getById(spaceId);
+    }
+
+    public void updateParkingSpaceStatus(String spaceId, boolean isOccupied) {
+        ParkingSpace space = parkingSpaceDAO.getById(spaceId);
+        if (space != null) {
+            space.setOccupied(isOccupied, null);
+            parkingSpaceDAO.update(space);
         }
-        parkingSpaceDAO.update(space);
     }
 
-    public void deleteParkingSpace(String spaceId) {
-        parkingSpaceDAO.delete(spaceId);
+    public void updateParkingSpaceRate(String spaceId, double newRate) {
+        ParkingSpace space = parkingSpaceDAO.getById(spaceId);
+        if (space != null) {
+            space.setRate(newRate);
+            parkingSpaceDAO.update(space);
+        }
     }
 
     public void enableParkingSpace(String spaceId) {
-        ParkingSpace space = getParkingSpace(spaceId);
-        if (space == null) {
-            throw new IllegalArgumentException("Parking space not found");
+        ParkingSpace space = parkingSpaceDAO.getById(spaceId);
+        if (space != null) {
+            space.setEnabled(true);
+            parkingSpaceDAO.update(space);
         }
-        space.setEnabled(true);
-        parkingSpaceDAO.update(space);
     }
 
     public void disableParkingSpace(String spaceId) {
-        ParkingSpace space = getParkingSpace(spaceId);
-        if (space == null) {
-            throw new IllegalArgumentException("Parking space not found");
+        ParkingSpace space = parkingSpaceDAO.getById(spaceId);
+        if (space != null) {
+            space.setEnabled(false);
+            parkingSpaceDAO.update(space);
         }
-        space.setEnabled(false);
-        parkingSpaceDAO.update(space);
     }
 
     /**
      * Returns a list of all currently unoccupied parking spaces.
      */
     public List<ParkingSpace> getAvailableSpaces() {
-        List<ParkingSpace> allSpaces = parkingSpaceDAO.getAll();
-        List<ParkingSpace> available = allSpaces.stream()
-                .filter(ParkingSpace::isAvailable)
+        return parkingSpaceDAO.getAll().stream()
+                .filter(space -> !space.isOccupied() && space.isEnabled())
                 .toList();
-        return available;
     }
 
     /**
@@ -86,13 +80,9 @@ public class ParkingSpaceService {
     public void markSpaceOccupied(String spaceId) {
         ParkingSpace space = parkingSpaceDAO.getById(spaceId);
         if (space == null) {
-            throw new IllegalArgumentException("No parking space found with ID: " + spaceId);
+            throw new IllegalArgumentException("Parking space not found: " + spaceId);
         }
-        if (space.isOccupied()) {
-            throw new IllegalStateException("Space " + spaceId + " is already occupied.");
-        }
-
-        space.setOccupied(true);
+        space.setOccupied(true, null);
         parkingSpaceDAO.update(space);
     }
 
@@ -102,13 +92,9 @@ public class ParkingSpaceService {
     public void markSpaceFree(String spaceId) {
         ParkingSpace space = parkingSpaceDAO.getById(spaceId);
         if (space == null) {
-            throw new IllegalArgumentException("No parking space found with ID: " + spaceId);
+            throw new IllegalArgumentException("Parking space not found: " + spaceId);
         }
-        if (!space.isOccupied()) {
-            throw new IllegalStateException("Space " + spaceId + " is already free.");
-        }
-
-        space.setOccupied(false);
+        space.setOccupied(false, null);
         parkingSpaceDAO.update(space);
     }
 
@@ -116,12 +102,9 @@ public class ParkingSpaceService {
      * Optionally update the rate or other properties.
      */
     public void updateSpaceRate(String spaceId, double newRate) {
-        if (newRate < 0) {
-            throw new IllegalArgumentException("Rate cannot be negative.");
-        }
         ParkingSpace space = parkingSpaceDAO.getById(spaceId);
         if (space == null) {
-            throw new IllegalArgumentException("No parking space found with ID: " + spaceId);
+            throw new IllegalArgumentException("Parking space not found: " + spaceId);
         }
         space.setRate(newRate);
         parkingSpaceDAO.update(space);
@@ -132,5 +115,22 @@ public class ParkingSpaceService {
      */
     public List<ParkingSpace> getAllSpaces() {
         return parkingSpaceDAO.getAll();
+    }
+
+    public void updateSpaceStatus(String spaceId, boolean isEnabled) {
+        ParkingSpace space = parkingSpaceDAO.getById(spaceId);
+        if (space == null) {
+            throw new IllegalArgumentException("Parking space not found: " + spaceId);
+        }
+        space.setEnabled(isEnabled);
+        parkingSpaceDAO.update(space);
+    }
+
+    public void enableSpace(String spaceId) {
+        updateSpaceStatus(spaceId, true);
+    }
+
+    public void disableSpace(String spaceId) {
+        updateSpaceStatus(spaceId, false);
     }
 }

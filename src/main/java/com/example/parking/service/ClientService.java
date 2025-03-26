@@ -1,7 +1,8 @@
 package com.example.parking.service;
 
-import com.example.parking.dao.DAO;
-import com.example.parking.model.Client;
+import com.example.parking.model.client.Client;
+import com.example.parking.dao.ClientDAO;
+import com.example.parking.factory.ClientFactory;
 import java.util.List;
 import java.util.UUID;
 
@@ -12,21 +13,21 @@ import java.util.UUID;
  */
 public class ClientService {
 
-    private final DAO<Client> clientDAO;
+    private final ClientDAO clientDAO;
 
-    public ClientService(DAO<Client> clientDAO) {
+    public ClientService(ClientDAO clientDAO) {
         this.clientDAO = clientDAO;
     }
 
     /**
      * Registers a new client in the system.
+     * @param type the type of the client
      * @param name the client's name
      * @param email the client's email
-     * @param password the client's password
      * @return the registered client
      * @throws IllegalArgumentException if the client with this email already exists
      */
-    public Client registerClient(String name, String email, String password) {
+    public Client registerClient(String type, String name, String email) {
         // Check if client already exists
         List<Client> existingClients = clientDAO.getAll();
         for (Client client : existingClients) {
@@ -36,7 +37,7 @@ public class ClientService {
         }
 
         String clientId = UUID.randomUUID().toString();
-        Client client = new Client(clientId, name, email, password, null, null);
+        Client client = ClientFactory.createClient(type, clientId, name, email);
         clientDAO.save(client);
         return client;
     }
@@ -61,11 +62,25 @@ public class ClientService {
     /**
      * Updates a client's registration status or other attributes.
      */
-    public void updateClient(Client client) {
+    public void updateClientStatus(String clientId, String status) {
+        Client client = clientDAO.getById(clientId);
         if (client == null) {
-            throw new IllegalArgumentException("Client cannot be null");
+            throw new IllegalArgumentException("Client not found: " + clientId);
         }
+        client.setStatus(status);
         clientDAO.update(client);
+    }
+
+    public void activateClient(String clientId) {
+        updateClientStatus(clientId, "ACTIVE");
+    }
+
+    public void deactivateClient(String clientId) {
+        updateClientStatus(clientId, "INACTIVE");
+    }
+
+    public void suspendClient(String clientId) {
+        updateClientStatus(clientId, "SUSPENDED");
     }
 
     /**
