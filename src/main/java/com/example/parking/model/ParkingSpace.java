@@ -2,32 +2,24 @@ package com.example.parking.model;
 
 import java.util.ArrayList;
 import java.util.List;
-import com.example.parking.observer.Observer;
-import com.example.parking.state.State;
-import com.example.parking.state.AvailableState;
 
 public class ParkingSpace {
-    private String id;
-    private String licenseplate;
+    private String spaceId;
     private boolean isOccupied;
     private boolean isEnabled;
     private double rate;
-    private State state;
+    private String licensePlate;
     private List<Observer> observers;
-    private String carInfo;
-    private Sensor sensor;
 
-    public ParkingSpace(String id, double rate) {
-        this.id = id;
+    public ParkingSpace(String spaceId, double rate) {
+        this.spaceId = spaceId;
         this.rate = rate;
         this.isOccupied = false;
         this.isEnabled = true;
-        this.state = new AvailableState();
         this.observers = new ArrayList<>();
-        this.sensor = new Sensor(this);
     }
 
-    // Observer Pattern methods
+    // Observer methods
     public void attach(Observer observer) {
         observers.add(observer);
     }
@@ -42,66 +34,69 @@ public class ParkingSpace {
         }
     }
 
-    // State Pattern methods
-    public void setState(State state) {
-        this.state = state;
-    }
-
-    public void request() {
-        state.handleRequest(this);
-    }
-
-    // Space management methods
+    // New method to enable the space
     public void enable() {
-        isEnabled = true;
-        notifyObservers();
+        if (!isEnabled) {
+            this.isEnabled = true;
+            notifyObservers();
+        }
     }
 
+    // New method to disable the space
     public void disable() {
-        isEnabled = false;
-        notifyObservers();
-    }
-
-    public void occupy(String licensePlate) {
-        this.licenseplate = licensePlate;
-        this.isOccupied = true;
-        this.carInfo = "License Plate: " + licensePlate;
-        notifyObservers();
-    }
-
-    public void vacate() {
-        this.licenseplate = null;
+        this.isEnabled = false;
         this.isOccupied = false;
-        this.carInfo = null;
+        this.licensePlate = null;
         notifyObservers();
     }
 
-    public void setOccupied(boolean status, String carInfo) {
-        this.isOccupied = status;
-        this.carInfo = carInfo;
-        notifyObservers();
+    // New method to occupy the space
+    public void occupy(String licensePlate) {
+        if (isEnabled && !isOccupied) {
+            this.isOccupied = true;
+            this.licensePlate = licensePlate;
+            notifyObservers();
+        }
     }
 
-    // Getters and setters
-    public String getId() { return id; }
-    public boolean isOccupied() { return isOccupied; }
-    public boolean isEnabled() { return isEnabled; }
-    public double getRate() { return rate; }
-    public String getCarInfo() { return carInfo; }
-    public String getLicensePlate() { return licenseplate; }
-    public State getState() { return state; }
-    public Sensor getSensor() { return sensor; }
+    // New method to vacate the space
+    public void vacate() {
+        if (isOccupied) {
+            this.isOccupied = false;
+            this.licensePlate = null;
+            notifyObservers();
+        }
+    }
+
+    // Getters/Setters
+    public String getSpaceId() {
+        return spaceId;
+    }
+
+    public boolean isOccupied() {
+        return isOccupied;
+    }
+
+    public boolean isEnabled() {
+        return isEnabled;
+    }
+
+    public double getRate() {
+        return rate;
+    }
+
+    public String getLicensePlate() {
+        return licensePlate;
+    }
 
     @Override
     public String toString() {
         return "ParkingSpace{" +
-                "id='" + id + '\'' +
+                "spaceId='" + spaceId + '\'' +
                 ", isOccupied=" + isOccupied +
                 ", isEnabled=" + isEnabled +
                 ", rate=" + rate +
-                ", carInfo='" + carInfo + '\'' +
-                ", state=" + state +
-                ", sensor=" + sensor +
+                ", licensePlate='" + licensePlate + '\'' +
                 '}';
     }
     

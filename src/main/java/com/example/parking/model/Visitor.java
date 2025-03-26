@@ -1,27 +1,42 @@
 package com.example.parking.model;
-
-import com.example.parking.strategy.ParkingRateStrategy;
 import java.util.Date;
 /**
  * Represents a visitor client, extending the base Client class.
  */
 public class Visitor extends Client implements Observer {
-    private String visitorID;
-    private Date visitDate;
     private String visitInformation;
+    private String visitorId;
+    private Date visitDate;
 
-    public Visitor(String email, String password, String name, 
-                  ParkingRateStrategy parkingRateStrategy,
-                  String visitorID, Date visitDate, String visitInformation) {
-        super(email, password, name, parkingRateStrategy);
-        this.visitorID = visitorID;
-        this.visitDate = visitDate;
+    public Visitor(String clientId, String name, String email, String password,
+                   String visitInformation, String visitorId) {
+        super(clientId, name, email, password);
         this.visitInformation = visitInformation;
+        this.visitorId = visitorId;
     }
 
-    public String getVisitorID() { return visitorID; }
-    public Date getVisitDate() { return visitDate; }
-    public String getVisitInformation() { return visitInformation; }
+    public String getvisitInformation() {
+        return visitInformation;
+    }
+
+    public void setvisitInformation(String visitInformation) {
+        this.visitInformation = visitInformation;
+    }
+    public String getVisitorId() {
+        return visitorId;
+    }
+
+    public void setVisitorId(String visitorId) {
+        this.visitorId = visitorId;
+    }
+
+    public Date getVisitDate() {  // Getter for visitDate
+        return visitDate;
+    }
+
+    public void setVisitDate(Date visitDate) {  // Setter for visitDate
+        this.visitDate = visitDate;
+    }
 
     public double getParkingRate(){
         return VisitorPricing.getRate();
@@ -40,7 +55,7 @@ public class Visitor extends Client implements Observer {
     public String toString() {
         return "Visitor{" +
                 "visitInformation='" + visitInformation + '\'' +
-                ", visitorID='" + visitorID + '\'' +
+                ", visitorId='" + visitorId + '\'' +
                 ", visitDate=" + visitDate +
                 ", " + super.toString() +
                 '}';

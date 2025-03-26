@@ -24,8 +24,8 @@ public class ParkingLot {
         parkingSpaces.remove(space);
     }
 
-    public ParkingSpaceIterator createIterator(boolean enabledOnly) {
-        return new ParkingSpaceIterator(parkingSpaces, enabledOnly);
+    public ParkingSpaceIterator createIterator(boolean isEnabledOnly) {
+        return new ParkingSpaceIterator(parkingSpaces, isEnabledOnly);
     }
 
     // Getters
