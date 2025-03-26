@@ -32,10 +32,14 @@ public class ParkingSpacePanel extends JPanel implements Observer {
         JScrollPane scrollPane = new JScrollPane(spacesGrid);
         add(scrollPane, BorderLayout.CENTER);
         
-        // Initialize with some example spaces
-        addParkingSpace(new ParkingSpace("A1", 10.0));
-        addParkingSpace(new ParkingSpace("A2", 10.0));
-        addParkingSpace(new ParkingSpace("A3", 10.0));
+        try {
+            // Initialize with some example spaces
+            addParkingSpace(new ParkingSpace("A1", 10.0));
+            addParkingSpace(new ParkingSpace("A2", 10.0));
+            addParkingSpace(new ParkingSpace("A3", 10.0));
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Error initializing parking spaces: " + e.getMessage());
+        }
     }
     
     private void showAddSpaceDialog() {
@@ -57,31 +61,41 @@ public class ParkingSpacePanel extends JPanel implements Observer {
                 double rate = Double.parseDouble(rateField.getText().trim());
                 
                 if (id.isEmpty()) {
-                    JOptionPane.showMessageDialog(this, "Space ID cannot be empty!");
-                    return;
+                    throw new IllegalArgumentException("Space ID cannot be empty!");
                 }
                 
                 if (parkingSpaces.containsKey(id)) {
-                    JOptionPane.showMessageDialog(this, "Space ID already exists!");
-                    return;
+                    throw new IllegalArgumentException("Space ID already exists!");
                 }
                 
                 addParkingSpace(new ParkingSpace(id, rate));
             } catch (NumberFormatException e) {
-                JOptionPane.showMessageDialog(this, "Invalid rate value!");
+                JOptionPane.showMessageDialog(this, "Invalid rate value! Please enter a valid number.", 
+                    "Input Error", JOptionPane.ERROR_MESSAGE);
+            } catch (IllegalArgumentException e) {
+                JOptionPane.showMessageDialog(this, e.getMessage(), 
+                    "Input Error", JOptionPane.ERROR_MESSAGE);
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(this, "Error creating parking space: " + e.getMessage(), 
+                    "System Error", JOptionPane.ERROR_MESSAGE);
             }
         }
     }
     
     private void addParkingSpace(ParkingSpace space) {
-        parkingSpaces.put(space.getId(), space);
-        space.attach(this);  // Register as observer
-        
-        JPanel spacePanel = createSpacePanel(space);
-        spaceDisplays.put(space.getId(), spacePanel);
-        spacesGrid.add(spacePanel);
-        revalidate();
-        repaint();
+        try {
+            parkingSpaces.put(space.getId(), space);
+            space.attach(this);  // Register as observer
+            
+            JPanel spacePanel = createSpacePanel(space);
+            spaceDisplays.put(space.getId(), spacePanel);
+            spacesGrid.add(spacePanel);
+            revalidate();
+            repaint();
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Error adding parking space: " + e.getMessage(), 
+                "System Error", JOptionPane.ERROR_MESSAGE);
+        }
     }
     
     private JPanel createSpacePanel(ParkingSpace space) {
@@ -92,7 +106,7 @@ public class ParkingSpacePanel extends JPanel implements Observer {
         // Space ID and Status
         JLabel idLabel = new JLabel("Space " + space.getId());
         idLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        JLabel statusLabel = new JLabel("Status: " + space.getStatus());
+        JLabel statusLabel = new JLabel(getStatusWithColor(space));
         statusLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         
         // Action buttons
@@ -102,33 +116,58 @@ public class ParkingSpacePanel extends JPanel implements Observer {
         JButton vacateButton = new JButton("Vacate");
         JButton toggleButton = new JButton(space.isEnabled() ? "Disable" : "Enable");
         
-        // Button actions
+        // Set button states based on space status
+        bookButton.setEnabled(space.isEnabled() && !space.isOccupied());
+        occupyButton.setEnabled(space.isEnabled() && !space.isOccupied());
+        vacateButton.setEnabled(space.isEnabled() && space.isOccupied());
+        
+        // Button actions with error handling
         bookButton.addActionListener(e -> {
-            space.request();
-            updateSpaceDisplay(space);
+            try {
+                space.request();
+                updateSpaceDisplay(space);
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, "Error booking space: " + ex.getMessage(), 
+                    "Operation Error", JOptionPane.ERROR_MESSAGE);
+            }
         });
         
         occupyButton.addActionListener(e -> {
-            String plate = JOptionPane.showInputDialog(this, "Enter license plate:");
-            if (plate != null && !plate.trim().isEmpty()) {
-                space.occupy(plate);
-                updateSpaceDisplay(space);
+            try {
+                String plate = JOptionPane.showInputDialog(this, "Enter license plate:");
+                if (plate != null && !plate.trim().isEmpty()) {
+                    space.occupy(plate);
+                    updateSpaceDisplay(space);
+                }
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, "Error occupying space: " + ex.getMessage(), 
+                    "Operation Error", JOptionPane.ERROR_MESSAGE);
             }
         });
         
         vacateButton.addActionListener(e -> {
-            space.vacate();
-            updateSpaceDisplay(space);
+            try {
+                space.vacate();
+                updateSpaceDisplay(space);
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, "Error vacating space: " + ex.getMessage(), 
+                    "Operation Error", JOptionPane.ERROR_MESSAGE);
+            }
         });
         
         toggleButton.addActionListener(e -> {
-            if (space.isEnabled()) {
-                space.disable();
-            } else {
-                space.enable();
+            try {
+                if (space.isEnabled()) {
+                    space.disable();
+                } else {
+                    space.enable();
+                }
+                toggleButton.setText(space.isEnabled() ? "Disable" : "Enable");
+                updateSpaceDisplay(space);
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, "Error toggling space state: " + ex.getMessage(), 
+                    "Operation Error", JOptionPane.ERROR_MESSAGE);
             }
-            toggleButton.setText(space.isEnabled() ? "Disable" : "Enable");
-            updateSpaceDisplay(space);
         });
         
         buttonPanel.add(bookButton);
@@ -154,16 +193,33 @@ public class ParkingSpacePanel extends JPanel implements Observer {
         return panel;
     }
     
+    private String getStatusWithColor(ParkingSpace space) {
+        String status = space.getStatus();
+        String color = switch (status) {
+            case "Available" -> "green";
+            case "Occupied" -> "red";
+            case "Booked" -> "orange";
+            case "Disabled" -> "gray";
+            default -> "black";
+        };
+        return String.format("<html>Status: <font color='%s'>%s</font></html>", color, status);
+    }
+    
     private void updateSpaceDisplay(ParkingSpace space) {
-        JPanel oldPanel = spaceDisplays.get(space.getId());
-        int index = getComponentIndex(oldPanel);
-        if (index != -1) {
-            spacesGrid.remove(index);
-            JPanel newPanel = createSpacePanel(space);
-            spaceDisplays.put(space.getId(), newPanel);
-            spacesGrid.add(newPanel, index);
-            revalidate();
-            repaint();
+        try {
+            JPanel oldPanel = spaceDisplays.get(space.getId());
+            int index = getComponentIndex(oldPanel);
+            if (index != -1) {
+                spacesGrid.remove(index);
+                JPanel newPanel = createSpacePanel(space);
+                spaceDisplays.put(space.getId(), newPanel);
+                spacesGrid.add(newPanel, index);
+                revalidate();
+                repaint();
+            }
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Error updating display: " + e.getMessage(), 
+                "System Error", JOptionPane.ERROR_MESSAGE);
         }
     }
     

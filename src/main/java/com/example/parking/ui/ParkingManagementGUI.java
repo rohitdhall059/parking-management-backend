@@ -3,8 +3,8 @@ package com.example.parking.ui;
 import javax.swing.*;
 import java.awt.*;
 import com.example.parking.model.*;
-import com.example.parking.strategy.*;
-import com.example.parking.factory.PaymentFactory;
+import com.example.parking.state.*;
+import com.example.parking.observer.*;
 
 public class ParkingManagementGUI extends JFrame {
     private JTabbedPane tabbedPane;
@@ -36,6 +36,12 @@ public class ParkingManagementGUI extends JFrame {
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
+            try {
+                // Set system look and feel
+                UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
             ParkingManagementGUI gui = new ParkingManagementGUI();
             gui.setVisible(true);
         });
