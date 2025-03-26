@@ -1,6 +1,6 @@
 package com.example.parking.dao;
 
-import com.example.parking.model.Client;
+import com.example.parking.model.*;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -8,98 +8,83 @@ import java.util.List;
 public class CSVClientDAO implements DAO<Client> {
 
     private final String csvFilePath;
+    private List<Client> clients;
 
     public CSVClientDAO(String csvFilePath) {
         this.csvFilePath = csvFilePath;
+        this.clients = new ArrayList<>();
+        loadFromFile();
+        // Create the directory if it doesn't exist
+        File file = new File(csvFilePath);
+        file.getParentFile().mkdirs();
     }
 
-    @Override
-    public Client getById(String id) {
-        List<Client> allClients = getAll();
-        for(Client client : allClients) {
-            if(client.getClientId().equals(id)) {
-                return client;
-            }
+    private void loadFromFile() {
+        File file = new File(csvFilePath);
+        if (!file.exists()) {
+            return;
         }
-        return null;
-    }
 
-    @Override
-    public List<Client> getAll() {
-        List<Client> clients = new ArrayList<>();
-        try (BufferedReader br = new BufferedReader(new FileReader(csvFilePath))) {
+        try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
             String line;
-            while((line = br.readLine()) != null) {
-                // CSV line format: clientId,name,email,isRegistered
+            while ((line = reader.readLine()) != null) {
                 String[] parts = line.split(",");
-                if(parts.length >= 4) {
-                    String clientId = parts[0].trim();
-                    String name = parts[1].trim();
-                    String email = parts[2].trim();
-                    boolean registered = Boolean.parseBoolean(parts[3].trim());
-
-                    Client client = new Client(clientId, name, email);
-                    client.setRegistered(registered);
+                if (parts.length >= 3) {
+                    Client client = new Client(parts[0], parts[1], parts[2], null, null, null);
                     clients.add(client);
                 }
             }
         } catch (IOException e) {
             e.printStackTrace();
         }
-        return clients;
     }
 
-    @Override
-    public void save(Client obj) {
-        try (BufferedWriter bw = new BufferedWriter(new FileWriter(csvFilePath, true))) {
-            // append a new line to the CSV
-            String line = obj.getClientId() + "," +
-                          obj.getName() + "," +
-                          obj.getEmail() + "," +
-                          obj.isRegistered();
-            bw.write(line);
-            bw.newLine();
+    private void saveToFile() {
+        try (PrintWriter writer = new PrintWriter(new FileWriter(csvFilePath))) {
+            for (Client client : clients) {
+                writer.println(String.format("%s,%s,%s",
+                    client.getClientId(),
+                    client.getName(),
+                    client.getEmail()));
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
     @Override
-    public void update(Client updatedClient) {
-        // 1. Read all existing clients
-        List<Client> allClients = getAll();
+    public Client getById(String id) {
+        return clients.stream()
+                .filter(c -> c.getClientId().equals(id))
+                .findFirst()
+                .orElse(null);
+    }
 
-        // 2. Replace the matching client
-        for(int i = 0; i < allClients.size(); i++) {
-            if(allClients.get(i).getClientId().equals(updatedClient.getClientId())) {
-                allClients.set(i, updatedClient);
-                break;
+    @Override
+    public List<Client> getAll() {
+        return new ArrayList<>(clients);
+    }
+
+    @Override
+    public void save(Client client) {
+        clients.add(client);
+        saveToFile();
+    }
+
+    @Override
+    public void update(Client client) {
+        for (int i = 0; i < clients.size(); i++) {
+            if (clients.get(i).getClientId().equals(client.getClientId())) {
+                clients.set(i, client);
+                saveToFile();
+                return;
             }
         }
-
-        // 3. Overwrite the entire CSV
-        overwriteCSV(allClients);
     }
 
     @Override
     public void delete(String id) {
-        List<Client> allClients = getAll();
-        allClients.removeIf(client -> client.getClientId().equals(id));
-        overwriteCSV(allClients);
-    }
-
-    private void overwriteCSV(List<Client> clients) {
-        try (BufferedWriter bw = new BufferedWriter(new FileWriter(csvFilePath, false))) {
-            for(Client c : clients) {
-                String line = c.getClientId() + "," +
-                              c.getName() + "," +
-                              c.getEmail() + "," +
-                              c.isRegistered();
-                bw.write(line);
-                bw.newLine();
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        clients.removeIf(c -> c.getClientId().equals(id));
+        saveToFile();
     }
 }

@@ -4,9 +4,9 @@ import com.example.parking.dao.DAO;
 import com.example.parking.model.Booking;
 import com.example.parking.model.Client;
 import com.example.parking.model.ParkingSpace;
-
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * Manages booking creation, cancellation, etc.
@@ -15,79 +15,59 @@ public class BookingService {
 
     private final DAO<Booking> bookingDAO;
     private final DAO<Client> clientDAO;
-    private final DAO<ParkingSpace> spaceDAO;
+    private final DAO<ParkingSpace> parkingSpaceDAO;
 
-    public BookingService(DAO<Booking> bookingDAO,
-                          DAO<Client> clientDAO,
-                          DAO<ParkingSpace> spaceDAO) {
+    public BookingService(DAO<Booking> bookingDAO, DAO<Client> clientDAO, DAO<ParkingSpace> parkingSpaceDAO) {
         this.bookingDAO = bookingDAO;
         this.clientDAO = clientDAO;
-        this.spaceDAO = spaceDAO;
+        this.parkingSpaceDAO = parkingSpaceDAO;
     }
 
     /**
      * Creates a new booking if the space is free and the client is valid.
-     * @param bookingId Unique ID for the booking.
      * @param clientId  Must match an existing Client.
      * @param spaceId   Must match an existing ParkingSpace that is not occupied.
      * @param startTime Start of the booking.
      * @param endTime   End of the booking. Should be after startTime.
+     * @param clientType Type of the client.
      * @return the newly created Booking object, or throws exception if invalid.
      */
-    public Booking createBooking(String bookingId,
-                                 String clientId,
-                                 String spaceId,
-                                 LocalDateTime startTime,
-                                 LocalDateTime endTime) {
-        // 1) Validate basic input
-        if (bookingId == null || bookingId.isEmpty()) {
-            throw new IllegalArgumentException("Booking ID cannot be null/empty.");
-        }
-        if (startTime == null || endTime == null || !endTime.isAfter(startTime)) {
-            throw new IllegalArgumentException("Invalid start/end time.");
+    public Booking createBooking(String clientId, String spaceId, LocalDateTime startTime, LocalDateTime endTime, String clientType) {
+        // Validate inputs
+        if (clientId == null || spaceId == null || startTime == null || endTime == null || clientType == null) {
+            throw new IllegalArgumentException("All parameters must be non-null");
         }
 
-        // 2) Check if booking already exists
-        Booking existingBooking = bookingDAO.getById(bookingId);
-        if (existingBooking != null) {
-            throw new IllegalArgumentException("Booking ID already in use: " + bookingId);
-        }
-
-        // 3) Check Client
-        Client client = clientDAO.getById(clientId);
-        if (client == null || !client.isRegistered()) {
-            throw new IllegalStateException("Client " + clientId + " not found or not registered.");
-        }
-
-        // 4) Check ParkingSpace
-        ParkingSpace space = spaceDAO.getById(spaceId);
+        // Check if space exists and is available
+        ParkingSpace space = parkingSpaceDAO.getById(spaceId);
         if (space == null) {
-            throw new IllegalArgumentException("No parking space with ID: " + spaceId);
+            throw new IllegalArgumentException("Parking space not found");
         }
-        if (space.isOccupied()) {
-            throw new IllegalStateException("Space " + spaceId + " is already occupied.");
+        if (!space.isAvailable()) {
+            throw new IllegalStateException("Parking space is not available");
         }
 
-        // 5) Calculate cost (simple example: rate * hours)
-        long hours = java.time.Duration.between(startTime, endTime).toHours();
-        if (hours <= 0) {
-            hours = 1; // minimum 1 hour, for example
+        // Check if client exists
+        Client client = clientDAO.getById(clientId);
+        if (client == null) {
+            throw new IllegalArgumentException("Client not found");
         }
-        double totalCost = space.getRate() * hours;
 
-        // 6) Create the Booking object
-        Booking newBooking = new Booking(bookingId, clientId, spaceId, startTime);
-        newBooking.setEndTime(endTime);
-        newBooking.setTotalCost(totalCost);
+        // Generate booking ID
+        String bookingId = UUID.randomUUID().toString();
 
-        // 7) Save booking
+        // Calculate total cost
+        double totalCost = 0; // Assuming totalCost calculation is not provided in the new method
+
+        // Create booking
+        Booking newBooking = new Booking(bookingId, clientId, spaceId, startTime, endTime, totalCost);
+
+        // Update parking space status
+        space.setOccupied(true, null);
+
+        // Save booking
         bookingDAO.save(newBooking);
 
-        // 8) Mark space as occupied
-        space.setOccupied(true);
-        spaceDAO.update(space);
-
-        // 9) Return the new booking
         return newBooking;
     }
 
@@ -97,15 +77,22 @@ public class BookingService {
     public void cancelBooking(String bookingId) {
         Booking booking = bookingDAO.getById(bookingId);
         if (booking == null) {
-            throw new IllegalArgumentException("No booking found with ID: " + bookingId);
+            throw new IllegalArgumentException("Booking not found");
         }
-        // Freed the space
-        ParkingSpace space = spaceDAO.getById(booking.getSpaceId());
-        if (space != null && space.isOccupied()) {
-            space.setOccupied(false);
-            spaceDAO.update(space);
+
+        // Update parking space status
+        ParkingSpace space = parkingSpaceDAO.getById(booking.getSpaceId());
+        if (space != null) {
+            space.setOccupied(false, null);
         }
-        // Remove booking record
+
+        // Process refund if applicable
+        double refundAmount = booking.calculateRefund();
+        if (refundAmount > 0) {
+            booking.processRefund(refundAmount);
+        }
+
+        // Delete booking
         bookingDAO.delete(bookingId);
     }
 
@@ -114,5 +101,31 @@ public class BookingService {
      */
     public List<Booking> getAllBookings() {
         return bookingDAO.getAll();
+    }
+
+    public Booking getBooking(String bookingId) {
+        return bookingDAO.getById(bookingId);
+    }
+
+    public void completeBooking(String bookingId) {
+        Booking booking = bookingDAO.getById(bookingId);
+        if (booking == null) {
+            throw new IllegalArgumentException("Booking not found");
+        }
+
+        booking.setStatus("COMPLETED");
+        bookingDAO.update(booking);
+    }
+
+    public List<Booking> getClientBookings(String clientId) {
+        return bookingDAO.getAll().stream()
+                .filter(b -> b.getClientId().equals(clientId))
+                .toList();
+    }
+
+    public List<Booking> getSpaceBookings(String spaceId) {
+        return bookingDAO.getAll().stream()
+                .filter(b -> b.getSpaceId().equals(spaceId))
+                .toList();
     }
 }

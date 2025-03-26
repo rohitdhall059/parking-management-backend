@@ -1,76 +1,42 @@
 package com.example.parking.model;
 
+import com.example.parking.observer.Observer;
+import com.example.parking.observer.Subject;
+import com.example.parking.state.*;
+
 import java.util.ArrayList;
 import java.util.List;
 
-public class ParkingSpace {
+public class ParkingSpace implements Subject {
     private String spaceId;
+    private String location;
+    private String type;
     private boolean isOccupied;
     private boolean isEnabled;
-    private double rate;
-    private String licensePlate;
+    private Car parkedCar;
+    private ParkingSpaceState state;
     private List<Observer> observers;
 
-    public ParkingSpace(String spaceId, double rate) {
+    public ParkingSpace(String spaceId, String location, String type) {
         this.spaceId = spaceId;
-        this.rate = rate;
+        this.location = location;
+        this.type = type;
         this.isOccupied = false;
         this.isEnabled = true;
         this.observers = new ArrayList<>();
+        this.state = new AvailableState(this);
     }
 
-    // Observer methods
-    public void attach(Observer observer) {
-        observers.add(observer);
-    }
-
-    public void detach(Observer observer) {
-        observers.remove(observer);
-    }
-
-    public void notifyObservers() {
-        for (Observer observer : observers) {
-            observer.update(this);
-        }
-    }
-
-    // New method to enable the space
-    public void enable() {
-        if (!isEnabled) {
-            this.isEnabled = true;
-            notifyObservers();
-        }
-    }
-
-    // New method to disable the space
-    public void disable() {
-        this.isEnabled = false;
-        this.isOccupied = false;
-        this.licensePlate = null;
-        notifyObservers();
-    }
-
-    // New method to occupy the space
-    public void occupy(String licensePlate) {
-        if (isEnabled && !isOccupied) {
-            this.isOccupied = true;
-            this.licensePlate = licensePlate;
-            notifyObservers();
-        }
-    }
-
-    // New method to vacate the space
-    public void vacate() {
-        if (isOccupied) {
-            this.isOccupied = false;
-            this.licensePlate = null;
-            notifyObservers();
-        }
-    }
-
-    // Getters/Setters
     public String getSpaceId() {
         return spaceId;
+    }
+
+    public String getLocation() {
+        return location;
+    }
+
+    public String getType() {
+        return type;
     }
 
     public boolean isOccupied() {
@@ -81,27 +47,61 @@ public class ParkingSpace {
         return isEnabled;
     }
 
-    public double getRate() {
-        return rate;
+    public Car getParkedCar() {
+        return parkedCar;
     }
 
-    public String getLicensePlate() {
-        return licensePlate;
+    public void setOccupied(boolean occupied, Car car) {
+        this.isOccupied = occupied;
+        this.parkedCar = car;
+        if (occupied) {
+            state = new OccupiedState(this);
+        } else {
+            state = new AvailableState(this);
+        }
+        notifyObservers();
+    }
+
+    public void setEnabled(boolean enabled) {
+        this.isEnabled = enabled;
+        if (enabled) {
+            state = new AvailableState(this);
+        } else {
+            state = new DisabledState(this);
+        }
+        notifyObservers();
+    }
+
+    public void occupy(Car car) {
+        state.occupy(car);
+    }
+
+    public void vacate() {
+        state.vacate();
+    }
+
+    public void enable() {
+        state.enable();
+    }
+
+    public void disable() {
+        state.disable();
     }
 
     @Override
-    public String toString() {
-        return "ParkingSpace{" +
-                "spaceId='" + spaceId + '\'' +
-                ", isOccupied=" + isOccupied +
-                ", isEnabled=" + isEnabled +
-                ", rate=" + rate +
-                ", licensePlate='" + licensePlate + '\'' +
-                '}';
+    public void registerObserver(Observer observer) {
+        observers.add(observer);
     }
-    
-    // Method to retrieve status as a string
-    public String getStatus() {
-        return isEnabled ? (isOccupied ? "Occupied" : "Available") : "Disabled";
+
+    @Override
+    public void removeObserver(Observer observer) {
+        observers.remove(observer);
     }
-}
+
+    @Override
+    public void notifyObservers() {
+        for (Observer observer : observers) {
+            observer.update(this);
+        }
+    }
+} 

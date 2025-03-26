@@ -252,8 +252,8 @@ public class Main {
             {"C2", "Occupied", "Client456"}
         };
 
-        JTable parkingTable = new JTable(data, columnNames);
-        JScrollPane scrollPane = new JScrollPane(parkingTable);
+        JTable table = new JTable(data, columnNames);
+        JScrollPane scrollPane = new JScrollPane(table);
 
         // Create button panel
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));

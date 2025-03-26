@@ -1,32 +1,24 @@
 package com.example.parking.model;
 
+import com.example.parking.model.car.Car;
+
 public class Client {
-    private PricingStrategy pricingStrategy;
     private String clientId;
     private String name;
     private String email;
-    private boolean isRegistered;
-    private String password; // Optional
-    private Car car; // New field for the associated car
+    private String password;
+    private Car car;
+    private String type;
 
-   // Constructor
-    public Client(String clientId, String name, String email, String password, Car car, PricingStrategy pricingStrategy) {
+    public Client(String clientId, String name, String email, String password, Car car, String type) {
         this.clientId = clientId;
         this.name = name;
         this.email = email;
-        this.isRegistered = false; // default
-        this.password = password;  // if needed
-        this.car = car; // Associate the car with the client
-        this.pricingStrategy = pricingStrategy; // Set the pricing strategy
+        this.password = password;
+        this.car = car;
+        this.type = type;
     }
 
-    // Alternate constructor if you do NOT want a password
-    public Client(String clientId, String name, String email, Car car, PricingStrategy pricingStrategy) {
-        this(clientId, name, email, null, car, pricingStrategy);
-    }
-
-
-    // Getters and Setters
     public String getClientId() {
         return clientId;
     }
@@ -51,14 +43,6 @@ public class Client {
         this.email = email;
     }
 
-    public boolean isRegistered() {
-        return isRegistered;
-    }
-
-    public void setRegistered(boolean registered) {
-        isRegistered = registered;
-    }
-
     public String getPassword() {
         return password;
     }
@@ -68,30 +52,18 @@ public class Client {
     }
 
     public Car getCar() {
-        return car; // Getter for the car
+        return car;
     }
 
     public void setCar(Car car) {
-        this.car = car; // Setter for the car
+        this.car = car;
     }
 
-    public double getParkingRate() {
-        if (pricingStrategy != null) {
-            return pricingStrategy.getRate(); // Get the rate from the pricing strategy
-        }
-        return 0.0; // Default rate if no strategy provided
+    public String getType() {
+        return type;
     }
 
-    @Override
-    public String toString() {
-        return "Client{" +
-                "clientId='" + clientId + '\'' +
-                ", name='" + name + '\'' +
-                ", email='" + email + '\'' +
-                ", isRegistered=" + isRegistered +
-                ", password=" + (password != null ? "******" : "null") +
-                ", car=" + (car != null ? car.toString() : "No car associated") +
-                ", pricingStrategy=" + (pricingStrategy != null ? pricingStrategy.getClass().getSimpleName() : "Not set") +
-                '}';
+    public void setType(String type) {
+        this.type = type;
     }
-}
+} 
