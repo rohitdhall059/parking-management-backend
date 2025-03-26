@@ -21,9 +21,13 @@ public class Sensor {
     }
 
     // Method to detect the presence of a car by scanning for its license plate
-    public void detectCarPresence(String licensePlate) {
-        boolean carDetected = scanForCar(licensePlate);
-        updateParkingSpace(carDetected, licensePlate);
+    public void detectCarPresence() {
+        // Simulates car detection
+        boolean carDetected = true; // In real implementation, this would use actual sensors
+        if (carDetected) {
+            String carInfo = scanCarInfo();
+            updateParkingSpace(carInfo);
+        }
     }
 
     // Simulate scanning for a car based on the license plate
@@ -35,20 +39,19 @@ public class Sensor {
     }
 
     // Update the parking space based on car presence
-    private void updateParkingSpace(boolean occupied, String licensePlate) {
-        if (occupied) {
-            // Create a new Car object based on the detected license plate
-            Car car = new Car("Detected Model", licensePlate); // Replace "Detected Model" with actual model if known
-            parkingSpace.setOccupied(true, car); // Set the parking space as occupied with the car
-            logger.info("Parking space occupied: " + parkingSpace.getSpaceId() + " with car: " + car);
+    private void updateParkingSpace(String carInfo) {
+        if (carInfo != null && !carInfo.isEmpty()) {
+            parkingSpace.occupy(carInfo);
+            logger.info("Parking space occupied: " + parkingSpace.getSpaceId() + " with car: " + carInfo);
         } else {
-            parkingSpace.setOccupied(false, null); // Free the parking space
+            parkingSpace.vacate();
             logger.info("Parking space freed: " + parkingSpace.getSpaceId());
         }
     }
 
     public String scanCarInfo() {
-        return parkingSpace.isOccupied ? parkingSpace.getLicensePlate() : "No car";
+        // Simulates scanning car information
+        return "ABC123"; // In real implementation, this would scan actual car info
     }
 
     // Getters and setters if needed

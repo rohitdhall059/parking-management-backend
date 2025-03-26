@@ -2,6 +2,7 @@ package com.example.parking.model;
 
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.time.format.DateTimeFormatter;
 
 public class Booking {
     private String bookingId;
@@ -11,6 +12,10 @@ public class Booking {
     private LocalDateTime endTime;
     private double totalCost;
     private PaymentMethod paymentMethod;
+    private ParkingSpace space;
+    private String licensePlate;
+    private boolean isCancelled;
+    private static final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
     public Booking(String bookingId, String clientId, String spaceId, LocalDateTime startTime, LocalDateTime endTime, double totalCost) {
         this.bookingId = bookingId;
@@ -19,6 +24,15 @@ public class Booking {
         this.startTime = startTime;
         this.endTime = endTime;
         this.totalCost = totalCost;
+        this.isCancelled = false;
+    }
+
+    public Booking(ParkingSpace space, String licensePlate, String fromTime, String toTime) {
+        this.space = space;
+        this.licensePlate = licensePlate;
+        this.startTime = LocalDateTime.parse(fromTime, formatter);
+        this.endTime = LocalDateTime.parse(toTime, formatter);
+        this.isCancelled = false;
     }
 
     // Getters/Setters
@@ -43,9 +57,19 @@ public class Booking {
     public PaymentMethod getPaymentMethod() { return paymentMethod; }
     public void setPaymentMethod(PaymentMethod paymentMethod) { this.paymentMethod = paymentMethod; }
 
+    public ParkingSpace getSpace() { return space; }
+    public String getLicensePlate() { return licensePlate; }
+    public boolean isCancelled() { return isCancelled; }
+
     @Override
     public String toString() {
-        return "Booking {" + "bookingID = '" + bookingId + '\'' + ", clientID = '" + clientId + '\'' + ", spaceID = '" + spaceId + '\'' + ", startTime = " + startTime + ", endTime = " + endTime + ", totalCost = " + totalCost + '}';
+        return "Booking{" +
+                "space=" + (space != null ? space.getId() : spaceId) +
+                ", licensePlate='" + licensePlate + '\'' +
+                ", startTime=" + startTime.format(formatter) +
+                ", endTime=" + endTime.format(formatter) +
+                ", status=" + (isCancelled ? "Cancelled" : isActive() ? "Active" : isExpired() ? "Expired" : "Scheduled") +
+                '}';
     }
 
     // Method to create a booking
@@ -68,96 +92,81 @@ public class Booking {
         System.out.println("Total cost after deducting deposit: " + totalCost);
     }
 
-    // Method to calculate refund based on time remaining
-    public double calculateRefund() {
-        long minutesLeft = ChronoUnit.MINUTES.between(LocalDateTime.now(), endTime);
-        if (minutesLeft > 0) {
-            // Assuming a simple refund policy: refund based on remaining time
-            double refundAmount = (totalCost / ChronoUnit.MINUTES.between(startTime, endTime)) * minutesLeft;
-            return refundAmount;
-        }
-        return 0.0; // No refund if the booking has ended
-    }
-
     // Method to extend parking time
-    public void extendParkingTime(LocalDateTime newEndTime, String clientType) {
-        if (newEndTime.isBefore(endTime)) {
-            throw new IllegalArgumentException("New end time must be after the current end time.");
+    public void extend(String newEndTime) {
+        if (isCancelled) {
+            throw new IllegalStateException("Cannot extend a cancelled booking");
         }
-
-        // Call editBooking to update the end time and recalculate total cost
-        editBooking(this.spaceId, this.startTime, newEndTime, clientType);
-
-        System.out.println("Parking time extended to: " + newEndTime);
+        LocalDateTime newEnd = LocalDateTime.parse(newEndTime, formatter);
+        if (newEnd.isBefore(endTime)) {
+            throw new IllegalArgumentException("New end time must be after current end time");
+        }
+        
+        // Calculate additional cost if needed
+        long additionalHours = ChronoUnit.HOURS.between(endTime, newEnd);
+        if (additionalHours > 0) {
+            double additionalCost = calculateAdditionalCost(additionalHours);
+            this.totalCost += additionalCost;
+        }
+        
+        this.endTime = newEnd;
     }
 
-    public void cancelBooking() {
-        // Logic to free the parking space
-        ParkingSpace parkingSpace = ParkingSpaceManager.getParkingSpace(spaceId);
-        if (parkingSpace != null) {
-            parkingSpace.free();
-            System.out.println("Parking space " + spaceId + " has been freed.");
-        } else {
-            System.out.println("Parking space not found.");
-        }
-
-        // Logic to handle payment refunds
-        long minutesSinceStart = ChronoUnit.MINUTES.between(startTime, LocalDateTime.now());
-        if (minutesSinceStart < 60) {
-            // No refund for the deposit if the client is a no-show within the first hour
-            System.out.println("No refund for the deposit as the client is a no-show within the first hour.");
-        } else {
-            double refundAmount = calculateRefund(); // Calculate any refund based on the remaining time
-            if (refundAmount > 0) {
+    public void cancel() {
+        if (!isCancelled) {
+            isCancelled = true;
+            if (space != null) {
+                space.vacate();
+            }
+            
+            // Process refund if applicable
+            double refundAmount = calculateRefund();
+            if (refundAmount > 0 && paymentMethod != null) {
                 processRefund(refundAmount);
-                System.out.println("Refund of " + refundAmount + " processed for booking: " + bookingId);
-            } else {
-                System.out.println("No refund applicable for booking: " + bookingId);
             }
         }
-
-        // Log the cancellation
-        System.out.println("Booking canceled: " + bookingId);
     }
 
-    // Method to extend parking time
-    public void extendParkingTime(LocalDateTime newEndTime, String clientType) {
-        if (newEndTime.isBefore(endTime)) {
-            throw new IllegalArgumentException("New end time must be after the current end time.");
+    private double calculateAdditionalCost(long hours) {
+        // Implement cost calculation logic here
+        return hours * (totalCost / ChronoUnit.HOURS.between(startTime, endTime));
+    }
+
+    public boolean isActive() {
+        LocalDateTime now = LocalDateTime.now();
+        return !isCancelled && now.isAfter(startTime) && now.isBefore(endTime);
+    }
+
+    public boolean isExpired() {
+        return !isCancelled && LocalDateTime.now().isAfter(endTime);
+    }
+
+    public double calculateRefund() {
+        if (isCancelled || isExpired()) {
+            return 0.0;
         }
-
-        // Calculate additional cost
-        long additionalHours = ChronoUnit.HOURS.between(endTime, newEndTime);
-        PricingStrategy pricingStrategy = PricingStrategyFactory.getPricingStrategy(clientType);
-        double additionalCost = additionalHours * pricingStrategy.getRate();
-
-        // Update the end time and total cost
-        this.endTime = newEndTime;
-        this.totalCost += additionalCost;
-
-        System.out.println("Parking time extended to: " + newEndTime);
-        System.out.println("New total cost: " + this.totalCost);
+        
+        long minutesLeft = ChronoUnit.MINUTES.between(LocalDateTime.now(), endTime);
+        if (minutesLeft > 0) {
+            long totalMinutes = ChronoUnit.MINUTES.between(startTime, endTime);
+            return (totalCost / totalMinutes) * minutesLeft;
+        }
+        return 0.0;
     }
 
-    // Method to process payment
     public void processPayment(double amount) {
         if (paymentMethod != null) {
-            // Logic to process the payment
             paymentMethod.processPayment(amount);
-            System.out.println("Payment of " + amount + " processed for booking: " + bookingId);
         } else {
-            System.out.println("No payment method set for this booking.");
+            throw new IllegalStateException("No payment method set for this booking");
         }
     }
 
-    //Method to process Refund
     public void processRefund(double amount) {
         if (paymentMethod != null) {
-            // Logic to process the refund
-            paymentMethod.processRefund(amount); // Assuming the PaymentMethod has a processRefund method
-            System.out.println("Refund of " + amount + " processed for booking: " + bookingId);
+            paymentMethod.processRefund(amount);
         } else {
-            System.out.println("No payment method set for this booking. Cannot process refund.");
+            throw new IllegalStateException("No payment method set for this booking");
         }
     }
 }

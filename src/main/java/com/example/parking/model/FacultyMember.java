@@ -1,26 +1,25 @@
 package com.example.parking.model;
 
+import com.example.parking.strategy.ParkingRateStrategy;
+
 /**
  * Represents a faculty client, extending the base Client class.
  */
 public class FacultyMember extends Client implements Observer {
+    private String facultyID;
     private String department;
     private String position;
 
-    public FacultyMember(String clientId, String name, String email, String password,
-                         String department, String position) {
-        super(clientId, name, email, password);
-        this.department = department;
-        this.position = position;
-    }
-
-    public String getDepartment() {
-        return department;
-    }
-
-    public void setDepartment(String department) {
+    public FacultyMember(String email, String password, String name, 
+                        ParkingRateStrategy parkingRateStrategy,
+                        String facultyID, String department) {
+        super(email, password, name, parkingRateStrategy);
+        this.facultyID = facultyID;
         this.department = department;
     }
+
+    public String getFacultyID() { return facultyID; }
+    public String getDepartment() { return department; }
 
     public String getPosition() {
         return position;
